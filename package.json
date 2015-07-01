@@ -1,0 +1,29 @@
+{
+  "name": "sime",
+  "version": "1.0.0",
+  "description": "Système Intégré de Management Environnemental",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "watchify main.js -o www/bundle.js -dv",
+    "inline": "html-inline boot.html > index.html",
+    "build": "browserify src/app.js | uglifyjs -mc > cordova-project/www/app.js && cp cordova/config-full.xml cordova-project/config.xml",
+    "build-free": "browserify src/app-free.js | uglifyjs -mc > cordova-project/www/app.js && cp cordova/config-free.xml cordova-project/config.xml"
+  },
+  "author": "KaeS",
+  "license": "ISC",
+  "dependencies": {
+    "absolute": "kaesapps/absolute#master",
+    "ksf": "kaesapps/ksf#master",
+    "lodash": "^3.9.3"
+  },
+  "devDependencies": {
+    "brfs": "latest",
+    "cordova": "4.3.0"
+  },
+  "browserify": {
+    "transform": [
+      "brfs"
+    ]
+  }
+}
