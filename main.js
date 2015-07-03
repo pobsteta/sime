@@ -1,6 +1,7 @@
 var when = require('when');
 var find = require('lodash/collection/find');
 
+
 var DeepStore = require('ksf/observable/deep/Store2');
 var Leaf = require('ksf/observable/deep/Leaf2');
 
@@ -20,6 +21,7 @@ var Space = require('absolute/Space');
 var Reactive = require('absolute/Reactive');
 
 var Value = require('ksf/observable/Value');
+var MappedValue = require('ksf/observable/MappedValue');
 
 // json rpc client
 var rest = require('rest/browser');
@@ -41,7 +43,7 @@ var rpcInterceptor = interceptor({
     request: function (request, config, meta) {
         request.params.unshift(config.token);
         request.params.unshift(config.session);
-        request.params.push(config.user);
+        request.params.push(config.preferences);
         return {entity: request};
     },
     response: function (response, config, meta) {
@@ -141,11 +143,20 @@ function displayList (viewId, modelId, formViewId, container, message, request, 
 		"params":[viewId, "tree"],
 	}), request({
 		"method":"model."+modelId+".search",
-		"params":[[], 0, 1000, null],
+		"params":[[], 0, 10, null],
 	})]).then(function(res) {
 		var fieldsRes = res[0];
 		var itemIds = res[1];
 		var fieldIds = Object.keys(fieldsRes.fields);
+		var fieldIdsToRequest = [];
+		// request rec_name for many2one fields
+		for (var fieldKey in fieldsRes.fields) {
+			fieldIdsToRequest.push(fieldKey);
+			var fieldType = fieldsRes.fields[fieldKey].type;
+			if (fieldType === 'many2one') {
+				fieldIdsToRequest.push(fieldKey+'.rec_name');
+			}
+		}
 		var list = new VPile();
 		container.content(list);
 		list.add('back', new Button().value('<-').height(60).onAction(function() {
@@ -153,14 +164,14 @@ function displayList (viewId, modelId, formViewId, container, message, request, 
 		}));
 		return request({
 			"method":"model."+modelId+".read",
-			"params":[itemIds, fieldIds],
+			"params":[itemIds, fieldIdsToRequest],
 		}).then(function(dataRes) {
 			itemIds.forEach(function(itemId) {
 				var item = find(dataRes, {id: itemId});
 				var itemView = new Clickable(new Background(new VPile().content(fieldIds.map(function(fieldId) {
 					return new HFlex([
 						[new Label().value(fieldsRes.fields[fieldId].string).width(150), 'fixed'],
-						new Label().value(JSON.stringify(item[fieldId])),
+						displayFieldValue(item, fieldsRes.fields[fieldId]),
 					]).height(30);
 				}))).color('lightgrey').border('1px solid')).onAction(function() {
 					displayForm(formViewId, modelId, itemId, container, message, request, list);
@@ -173,6 +184,58 @@ function displayList (viewId, modelId, formViewId, container, message, request, 
 			console.log("erreur", err);
 		});
 	}).done();
+}
+
+var displayFieldFactories = {
+	boolean: function(item, field) {
+		return new Label().value(item[field.name] ? 'oui' : 'non'); // TODO: remplacer par le bon widget		
+	},
+	integer: function(item, field) {
+		return new Label().value(item[field.name]+'');	
+	},
+	biginteger: function(item, field) {
+		return new Label().value(item[field.name]+'');	
+	},
+	char: function(item, field) {
+		return new Label().value(item[field.name]);	
+	},
+	text: function(item, field) {
+		return new Label().value(item[field.name]);	
+	},
+	float: function(item, field) {
+		return new Label().value(item[field.name]+'');	
+	},
+	numeric: function(item, field) {
+		return new Label().value(item[field.name]+'');	
+	},
+	date: function(item, field) {
+		return new Label().value(item[field.name]);	
+	},
+	datetime: function(item, field) {
+		return new Label().value(item[field.name]);	
+	},
+	time: function(item, field) {
+		return new Label().value(item[field.name]);	
+	},
+	// selection
+	// reference
+	many2one: function(item, field) {
+		return new Label().value(item[field.name+'.rec_name']);	
+	},
+	one2many: function(item, field) {
+		return new Label().value('( ' + item[field.name].length + ' )');	
+	},
+	many2many: function(item, field) {
+		return new Label().value('( ' + item[field.name].length + ' )');	
+	},
+	// function
+	// property
+};
+function displayFieldValue (value, field) {
+	if (field.type in displayFieldFactories) {
+		return displayFieldFactories[field.type](value, field);
+	}
+	return new Label().value(JSON.stringify(value));
 }
 
 function displayForm (viewId, modelId, itemId, container, message, request, previous) {
@@ -207,33 +270,70 @@ function displayForm (viewId, modelId, itemId, container, message, request, prev
 	}).done();
 }
 
-var pageContainer = new Switch();
-var message = new Label();
-new FullScreen(new VFlex([
-	[message.height(20), 'fixed'],
-	pageContainer,
-]));
+
 
 request = request.wrap(defaultRequest, {
 	path: 'http://cg94.bioecoforests.teclib.net:8000/tryton1',
 	method: 'POST',
 });
-request({ entity: {
-	"method":"common.db.login",
-	"params":[
-		"admin",
-		"admin"
-	]
-}}).entity().then(function(res) {
-	request = request.wrap(rpcInterceptor, {
-		token: res.result[1],
-		session: res.result[0],
-		user: {"employee":null,"groups":[5,10,13,14,11,8,9],"language":"en_US","locale":{"date":"%m/%d/%Y","thousands_sep":",","decimal_point":".","grouping":[3,3,0]},"language_direction":"ltr","company":1,"company.rec_name":"Michael Scott Paper Company"},		
-	});
-	displayMenu(null, pageContainer, message, request);
 
-}, function(err) {
-	message.value('login error');
-	console.log('login error', err);
+var onLine = new Value();
+var pageContainer = new Switch();
+var message = new Label();
+new FullScreen(new VFlex([
+	[new HFlex([
+		message,
+		[new Reactive({
+			value: new MappedValue(onLine, function(state) {
+				return state ? 'connecté' : 'déconnecté';
+			}),
+			content: new Button().onAction(function() {
+				onLine.value(!onLine.value());
+			}),
+		}).width(100), 'fixed'],
+	]).height(30), 'fixed'],
+	pageContainer,
+]));
+
+onLine.onChange(function(onLineValue) {
+	if (onLineValue) {
+		request({ entity: {
+			"method":"common.db.login",
+			"params":[
+				"admin",
+				"admin"
+			]
+		}}).entity().then(function(loginRes) {
+			var token = loginRes.result[1];
+			var session = loginRes.result[0];
+
+			return request({
+				entity: {
+					"method": "model.res.user.get_preferences",
+					"params": [session, token, true, {}],
+				}
+			}).entity().then(function(preferencesRes) {
+				return {
+					token: token,
+					session: session,
+					preferences: preferencesRes.result,
+				};
+			});
+		}).then(function(res) {
+			var authenticatedRequest = request.wrap(rpcInterceptor, res);
+			displayMenu(null, pageContainer, message, authenticatedRequest);
+
+		}, function(err) {
+			message.value('login error');
+			console.log('login error', err);
+		});
+
+	} else {
+		pageContainer.content(new Label().value("We are offline"));
+	}
 });
+onLine.value(true);
+
+
+
 
