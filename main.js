@@ -39,14 +39,45 @@ registry.register('application/json-rpc', {
     }
 });
 var interceptor = require('rest/interceptor');
+// intercepteur pour une session utilis
+function forgeRequest(request, config) {
+	request.params = request.params || [];
+	request.params.unshift(config.session.value());
+	request.params.unshift(config.userId);
+	request.params.push(config.preferences);
+	return {entity: request};    		
+}
+function  unforgeRequest (request) {
+	return {
+		method: request.method,
+		params: request.params.slice(2, request.params.length-1),
+	};
+}
 var rpcInterceptor = interceptor({
     request: function (request, config, meta) {
-        request.params.unshift(config.token);
-        request.params.unshift(config.session);
-        request.params.push(config.preferences);
-        return {entity: request};
+    	var sessionToken = config.session.value();
+    	if (sessionToken) {
+    		return forgeRequest(request, config);
+    	} else {
+    		return when.promise(function(resolve) {
+    			var cancel = config.session.onChange(function(sessionToken) {
+    				cancel();
+    				resolve(forgeRequest(request, config));
+    			});
+    		});
+    	}
     },
-    response: function (response, config, meta) {
+    success: function (response, config, meta) {
+    	if (response.entity.error) {
+    		if (response.entity.error[0] === 'NotLogged') {
+    			// ne pas remettre à null si la session a déjà été renouvelée
+    			if (config.session.value() === meta.arguments[0].params[1]) {
+    				config.session.value(null);
+    			}
+    			return meta.client(unforgeRequest(meta.arguments[0]));
+    		}
+    		return when.reject(response.entity.error);
+    	}
         return response.entity.result;
     },
 });
@@ -136,6 +167,19 @@ function displayMenu (menuItemId, container, message, request, previous) {
 	}).done();
 }
 
+function getFieldIdsToRequest (fields) {
+	// request rec_name for many2one fields
+	var fieldIdsToRequest = [];
+	for (var fieldKey in fields) {
+		fieldIdsToRequest.push(fieldKey);
+		var fieldType = fields[fieldKey].type;
+		if (fieldType === 'many2one') {
+			fieldIdsToRequest.push(fieldKey+'.rec_name');
+		}
+	}
+	return fieldIdsToRequest;
+}
+
 function displayList (viewId, modelId, formViewId, container, message, request, previous) {
 	message.value('loading...');
 	when.all([request({
@@ -148,15 +192,6 @@ function displayList (viewId, modelId, formViewId, container, message, request, 
 		var fieldsRes = res[0];
 		var itemIds = res[1];
 		var fieldIds = Object.keys(fieldsRes.fields);
-		var fieldIdsToRequest = [];
-		// request rec_name for many2one fields
-		for (var fieldKey in fieldsRes.fields) {
-			fieldIdsToRequest.push(fieldKey);
-			var fieldType = fieldsRes.fields[fieldKey].type;
-			if (fieldType === 'many2one') {
-				fieldIdsToRequest.push(fieldKey+'.rec_name');
-			}
-		}
 		var list = new VPile();
 		container.content(list);
 		list.add('back', new Button().value('<-').height(60).onAction(function() {
@@ -164,7 +199,7 @@ function displayList (viewId, modelId, formViewId, container, message, request, 
 		}));
 		return request({
 			"method":"model."+modelId+".read",
-			"params":[itemIds, fieldIdsToRequest],
+			"params":[itemIds, getFieldIdsToRequest(fieldsRes.fields)],
 		}).then(function(dataRes) {
 			itemIds.forEach(function(itemId) {
 				var item = find(dataRes, {id: itemId});
@@ -231,11 +266,11 @@ var displayFieldFactories = {
 	// function
 	// property
 };
-function displayFieldValue (value, field) {
+function displayFieldValue (item, field) {
 	if (field.type in displayFieldFactories) {
-		return displayFieldFactories[field.type](value, field);
+		return displayFieldFactories[field.type](item, field);
 	}
-	return new Label().value(JSON.stringify(value));
+	return new Label().value(JSON.stringify(item[field.name]));
 }
 
 function displayForm (viewId, modelId, itemId, container, message, request, previous) {
@@ -244,20 +279,33 @@ function displayForm (viewId, modelId, itemId, container, message, request, prev
 		"method":"model."+modelId+".fields_view_get",
 		"params":[viewId, "form"],
 	}).then(function(res) {
+		var changes = {};
 		var fieldIds = Object.keys(res.fields);
 		var form = new VPile();
 		container.content(form);
 		form.add('back', new Button().value('<-').height(60).onAction(function() {
 			container.content(previous);
 		}));
+		form.add('save', new Button().value('Enregistrer').height(60).onAction(function() {
+			message.value('enregistrement...');
+			request({
+				method: "model."+modelId+".write",
+				params: [[itemId], changes],
+			}).then(function() {
+				message.value("Enregistré");
+			}, function(err) {
+				message.value("Erreur lors de l'enregistrement");
+				console.log("Erreur lors de l'enregistrement", err);
+			});
+		}));
 		return request({
 			"method":"model."+modelId+".read",
-			"params":[[itemId], fieldIds],
+			"params":[[itemId], getFieldIdsToRequest(res.fields)],
 		}).then(function(dataRes) {
 			fieldIds.forEach(function(fieldId) {
 				var propDisplayer = new HFlex([
 					[new Label().value(res.fields[fieldId].string).width(150), 'fixed'],
-					new Label().value(JSON.stringify(dataRes[0][fieldId])),
+					editFieldValue(dataRes[0], res.fields[fieldId], changes, container, message, request, form),
 				]).height(30);
 				form.add(fieldId, propDisplayer);
 			});
@@ -270,6 +318,92 @@ function displayForm (viewId, modelId, itemId, container, message, request, prev
 	}).done();
 }
 
+var editFieldFactories = {
+	boolean: function(item, field) {
+		return new Label().value(item[field.name] ? 'oui' : 'non'); // TODO: remplacer par le bon widget		
+	},
+	integer: function(item, field) {
+		return new Label().value(item[field.name]+'');	
+	},
+	biginteger: function(item, field) {
+		return new Label().value(item[field.name]+'');	
+	},
+	char: function(item, field, changes) {
+		return new LabelInput().value(item[field.name]).onInput(function(newValue) {
+			changes[field.name] = newValue;
+		});	
+	},
+	text: function(item, field) {
+		return new Label().value(item[field.name]);	
+	},
+	float: function(item, field) {
+		return new Label().value(item[field.name]+'');	
+	},
+	numeric: function(item, field) {
+		return new Label().value(item[field.name]+'');	
+	},
+	date: function(item, field) {
+		return new Label().value(item[field.name]);	
+	},
+	datetime: function(item, field) {
+		return new Label().value(item[field.name]);	
+	},
+	time: function(item, field) {
+		return new Label().value(item[field.name]);	
+	},
+	many2one: function(item, field, changes, container, message, request, currentPage) {
+		return new Button().value(item[field.name+'.rec_name']).onAction(function() {
+			container.content(createChoiceList(item[field.name], field, changes, message, request, function (itemId) {
+				changes[field.name] = itemId;
+				container.content(currentPage);
+			}));
+		});
+	},
+	one2many: function(item, field, changes, container, message, request, currentPage) {
+		return new Button().value('( ' + item[field.name].length + ' )').onAction(function() {
+			// displayList
+		});	
+	},
+	many2many: function(item, field) {
+		return new Label().value('( ' + item[field.name].length + ' )');	
+	},
+	// selection
+	// reference
+	// function
+	// property
+};
+function editFieldValue (item, field, changes, container, message, request, currentPage) {
+	if (field.type in displayFieldFactories) {
+		return editFieldFactories[field.type](item, field, changes, container, message, request, currentPage);
+	}
+	return new Label().value(JSON.stringify(item[field.name]));
+}
+
+function createChoiceList (selectedItemId, field, changes, message, request, onInput) {
+	message.value('loading...');
+	var modelId = field.relation;
+	var list = new VPile();
+	request({
+		"method":"model."+modelId+".search_read",
+		"params":[[], 0, 10, null, ['rec_name']],
+	}).then(function(items) {
+		items.forEach(function(item) {
+			var itemId = item.id;
+			var itemView = new Clickable(new Background(
+				new Label().value(item['rec_name'])
+			).color(itemId === selectedItemId ? 'lightblue' : 'lightgrey').border('1px solid')).onAction(function() {
+				onInput(itemId);
+			}).height(30);
+			list.add(itemId, itemView);
+		});
+		message.value('loaded');
+	}, function(err) {
+		message.value("erreur");
+		console.log("erreur", err);
+	});
+	return list;
+}
+
 
 
 request = request.wrap(defaultRequest, {
@@ -280,17 +414,19 @@ request = request.wrap(defaultRequest, {
 var onLine = new Value();
 var pageContainer = new Switch();
 var message = new Label();
+var logoutButton = new Button().value("logout").width(100);
 new FullScreen(new VFlex([
 	[new HFlex([
 		message,
 		[new Reactive({
 			value: new MappedValue(onLine, function(state) {
-				return state ? 'connecté' : 'déconnecté';
+				return state ? 'live' : 'local';
 			}),
 			content: new Button().onAction(function() {
 				onLine.value(!onLine.value());
 			}),
 		}).width(100), 'fixed'],
+		[logoutButton, 'fixed'],
 	]).height(30), 'fixed'],
 	pageContainer,
 ]));
@@ -304,24 +440,51 @@ onLine.onChange(function(onLineValue) {
 				"admin"
 			]
 		}}).entity().then(function(loginRes) {
+			var userId = loginRes.result[0];
 			var token = loginRes.result[1];
-			var session = loginRes.result[0];
 
 			return request({
 				entity: {
 					"method": "model.res.user.get_preferences",
-					"params": [session, token, true, {}],
+					"params": [userId, token, true, {}],
 				}
 			}).entity().then(function(preferencesRes) {
 				return {
-					token: token,
-					session: session,
+					userId: userId,
+					session: new Value(token),
 					preferences: preferencesRes.result,
 				};
 			});
 		}).then(function(res) {
 			var authenticatedRequest = request.wrap(rpcInterceptor, res);
+			logoutButton.onAction(function() {
+				authenticatedRequest({
+					method: 'common.db.logout',
+				});
+			});
 			displayMenu(null, pageContainer, message, authenticatedRequest);
+			res.session.onChange(function(sessionToken) {
+				if (sessionToken === null) {
+					// popupContainer.content(createAuthenticateForm(function(sessionToken) {
+					// 	res.session.value(sessionToken);
+					// 	popupContainer.content(null);
+					// }));
+					var password = window.prompt('password');
+					message.value('authenticating...');
+					request({ entity: {
+						"method":"common.db.login",
+						"params":[
+							"admin",
+							password
+						]
+					}}).entity().then(function(loginRes) {
+						message.value('authenticated');
+						res.session.value(loginRes.result[1]);
+					}, function(err) {
+						message.value("erreur d'authentification");
+					});
+				}
+			});
 
 		}, function(err) {
 			message.value('login error');
