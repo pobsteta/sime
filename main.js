@@ -1,10 +1,6 @@
 var when = require('when');
 var find = require('lodash/collection/find');
 
-
-var DeepStore = require('ksf/observable/deep/Store2');
-var Leaf = require('ksf/observable/deep/Leaf2');
-
 var FullScreen = require('absolute/FullScreen');
 var VFlex = require('absolute/VFlex');
 var HFlex = require('absolute/HFlex');
