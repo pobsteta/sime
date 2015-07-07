@@ -9,6 +9,8 @@ var FullScreen = require('absolute/FullScreen');
 var VFlex = require('absolute/VFlex');
 var HFlex = require('absolute/HFlex');
 var VPile = require('absolute/VPile');
+var HPile = require('absolute/HPile');
+var ZPile = require('absolute/ZPile');
 var Label = require('absolute/Label');
 var Editor = require('absolute/Editor');
 var LabelInput = require('absolute/LabelInput');
@@ -17,11 +19,22 @@ var Switch = require('absolute/Switch');
 var Clickable = require('absolute/Clickable');
 var Background = require('absolute/Background');
 var Space = require('absolute/Space');
+var Align = require('absolute/Align');
 
 var Reactive = require('absolute/Reactive');
 
 var Value = require('ksf/observable/Value');
+var bindValue = require('ksf/observable/bindValue');
 var MappedValue = require('ksf/observable/MappedValue');
+
+
+function createPersistableValue (name, initValue) {
+	var value = new Value(JSON.parse(localStorage.getItem(name)));
+	value.onChange(function(newValue) {
+		localStorage.setItem(name, JSON.stringify(newValue));
+	});
+	return value;
+}
 
 // json rpc client
 var rest = require('rest/browser');
@@ -405,97 +418,128 @@ function createChoiceList (selectedItemId, field, changes, message, request, onI
 }
 
 
-
-request = request.wrap(defaultRequest, {
-	path: 'http://cg94.bioecoforests.teclib.net:8000/tryton1',
-	method: 'POST',
-});
-
-var onLine = new Value();
+var loggedIn = createPersistableValue('loginParams');
 var pageContainer = new Switch();
 var message = new Label();
-var logoutButton = new Button().value("logout").width(100);
-new FullScreen(new VFlex([
-	[new HFlex([
-		message,
-		[new Reactive({
-			value: new MappedValue(onLine, function(state) {
-				return state ? 'live' : 'local';
-			}),
-			content: new Button().onAction(function() {
-				onLine.value(!onLine.value());
-			}),
-		}).width(100), 'fixed'],
-		[logoutButton, 'fixed'],
-	]).height(30), 'fixed'],
-	pageContainer,
+var popupContainer = new Switch();
+var menuBar = new HPile();
+new FullScreen(new ZPile().content([
+	new VFlex([
+		[new HFlex([
+			menuBar,
+			[message.width(200), 'fixed'],
+		]).height(30), 'fixed'],
+		pageContainer,
+	]).depth(1000),
+	popupContainer,
 ]));
 
-onLine.onChange(function(onLineValue) {
-	if (onLineValue) {
-		request({ entity: {
-			"method":"common.db.login",
-			"params":[
-				"admin",
-				"admin"
-			]
-		}}).entity().then(function(loginRes) {
-			var userId = loginRes.result[0];
-			var token = loginRes.result[1];
-
-			return request({
-				entity: {
-					"method": "model.res.user.get_preferences",
-					"params": [userId, token, true, {}],
-				}
-			}).entity().then(function(preferencesRes) {
-				return {
-					userId: userId,
-					session: new Value(token),
-					preferences: preferencesRes.result,
-				};
+var sessionObserver;
+bindValue(loggedIn, function(loggedInParams) {
+	if (loggedInParams) {
+		var loggedInRequest = request.wrap(defaultRequest, {
+			path: loggedInParams.url,
+			method: 'POST',
+		});
+		var session = createPersistableValue('sessionToken');
+		var authenticatedRequest = loggedInRequest.wrap(rpcInterceptor, {
+			userId: loggedInParams.userId,
+			session: session,
+			preferences: loggedInParams.preferences,
+		});
+		menuBar.add('logout', new Button().value("logout").width(100).onAction(function() {
+			authenticatedRequest({
+				method: 'common.db.logout',
+			}).then(function() {
+				loggedIn.value(null);
+				session.value(null);
 			});
-		}).then(function(res) {
-			var authenticatedRequest = request.wrap(rpcInterceptor, res);
-			logoutButton.onAction(function() {
-				authenticatedRequest({
-					method: 'common.db.logout',
+		}));
+		displayMenu(null, pageContainer, message, authenticatedRequest);
+		sessionObserver = bindValue(session, function(sessionToken) {
+			if (sessionToken === null) {
+				// popupContainer.content(createAuthenticateForm(function(sessionToken) {
+				// 	res.session.value(sessionToken);
+				// 	popupContainer.content(null);
+				// }));
+				var password = window.prompt('password');
+				message.value('authenticating...');
+				loggedInRequest({ entity: {
+					"method":"common.db.login",
+					"params":[
+						loggedInParams.username,
+						password
+					]
+				}}).entity().then(function(loginRes) {
+					if (loginRes.result && loginRes.result !== false) {
+						message.value('authenticated');
+						session.value(loginRes.result[1]);		
+					} else {
+						message.value("erreur d'authentification");
+					}
 				});
-			});
-			displayMenu(null, pageContainer, message, authenticatedRequest);
-			res.session.onChange(function(sessionToken) {
-				if (sessionToken === null) {
-					// popupContainer.content(createAuthenticateForm(function(sessionToken) {
-					// 	res.session.value(sessionToken);
-					// 	popupContainer.content(null);
-					// }));
-					var password = window.prompt('password');
-					message.value('authenticating...');
-					request({ entity: {
+			}
+		});
+	} else {
+		if (sessionObserver) {
+			sessionObserver();
+			sessionObserver = null;
+			menuBar.remove('logout');
+			message.value('loggedOut');
+		}
+		var url = 'http://cg94.bioecoforests.teclib.net:8000/tryton1';
+		var username;
+		var password;
+		pageContainer.content(new Align(new VFlex([
+			new LabelInput().placeholder('url').value(url).height(30).onInput(function(val) {
+				url = val;
+			}),
+			new LabelInput().placeholder('username').height(30).onInput(function(val) {
+				username = val;
+			}),
+			new LabelInput({type: 'password'}).placeholder('password').height(30).onInput(function(val) {
+				password = val;
+			}),
+			new Button().value("Entrer").onAction(function() {
+				request({
+					path: url,
+					method: 'POST',
+					entity: {
 						"method":"common.db.login",
 						"params":[
-							"admin",
+							username,
 							password
 						]
-					}}).entity().then(function(loginRes) {
-						message.value('authenticated');
-						res.session.value(loginRes.result[1]);
-					}, function(err) {
-						message.value("erreur d'authentification");
+					}
+				}).entity().then(function(loginRes) {
+					var userId = loginRes.result[0];
+					var token = loginRes.result[1];
+
+					return request({
+						path: url,
+						method: 'POST',
+						entity: {
+							"method": "model.res.user.get_preferences",
+							"params": [userId, token, true, {}],
+						}
+					}).entity().then(function(preferencesRes) {
+						createPersistableValue('sessionToken').value(token);
+						loggedIn.value({
+							url: url,
+							username: username,
+							userId: userId,
+							preferences: preferencesRes.result,
+						});
 					});
-				}
-			});
+				}, function(err) {
+					message.value('login error');
+					console.log('login error', err);
+				});
 
-		}, function(err) {
-			message.value('login error');
-			console.log('login error', err);
-		});
-
-	} else {
-		pageContainer.content(new Label().value("We are offline"));
+			}),
+		]).width(500).height(30*4), 'middle', 'middle'));
 	}
 });
-onLine.value(true);
 
 
 
