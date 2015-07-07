@@ -2,12 +2,15 @@ var compose = require('ksf/utils/compose');
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var HFlex = require('absolute/HFlex');
 var Switch = require('absolute/Switch');
+var VScroll = require('absolute/VScroll');
+
 
 
 // affiche une stack de pages (composants) sous forme de 2 panneaux et ne montre toujours que les 2 dernières pages
 module.exports = compose(_ContentDelegate, function() {
 	this._stack = [];
-	this._content = new HFlex([
+	this._content = new Switch();
+	this._doublePanes = new HFlex([
 		this._firstPane = new Switch(),
 		this._secondPane = new Switch(),
 	]);
@@ -30,7 +33,14 @@ module.exports = compose(_ContentDelegate, function() {
 
 		var firstPage = this._stack.length > 1 ? this._stack[this._stack.length-2] : null;
 		var secondPage = this._stack.length > 0 ? this._stack[this._stack.length-1] : null;
-		this._firstPane.content(firstPage);
-		this._secondPane.content(secondPage);
+
+		if (this._stack.length <= 1) {
+			this._content.content(secondPage);
+		} else {
+			this._firstPane.content(firstPage);
+			this._secondPane.content(secondPage);
+			this._content.content(this._doublePanes);
+		}
+
 	},
 });

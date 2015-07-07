@@ -5,6 +5,7 @@ var FullScreen = require('absolute/FullScreen');
 var VFlex = require('absolute/VFlex');
 var HFlex = require('absolute/HFlex');
 var VPile = require('absolute/VPile');
+var VScroll = require('absolute/VScroll');
 var HPile = require('absolute/HPile');
 var ZPile = require('absolute/ZPile');
 var Label = require('absolute/Label');
@@ -16,6 +17,7 @@ var Clickable = require('absolute/Clickable');
 var Background = require('absolute/Background');
 var Space = require('absolute/Space');
 var Align = require('absolute/Align');
+var Margin = require('absolute/Margin');
 
 var Reactive = require('absolute/Reactive');
 
@@ -121,7 +123,8 @@ function displayMenu (menuItemId, container, message, request, previous, onActio
 		]
 	}).then(function(res) {
 		var menuContainer = new VPile();
-		container.content(menuContainer);
+		var menuPage = new Margin(new VScroll(menuContainer), 10);
+		container.content(menuPage);
 		if (menuItemId !== null) {
 			menuContainer.add('back', new Button().value('<-').height(60).onAction(function() {
 				container.content(previous);
@@ -131,7 +134,7 @@ function displayMenu (menuItemId, container, message, request, previous, onActio
 			var menuItemLabel = new Value(childMenuItemId+'');
 			var menuItem = new HFlex([
 				[new Button().width(30).value('+').onAction(function() {
-					displayMenu(childMenuItemId, container, message, request, menuContainer, onAction);
+					displayMenu(childMenuItemId, container, message, request, menuPage, onAction);
 				}), 'fixed'],
 				new VFlex([
 					new Reactive({
@@ -219,10 +222,13 @@ function displayList (viewId, modelId, formViewId, container, message, request, 
 		var itemIds = res[1];
 		var fieldIds = Object.keys(fieldsRes.fields);
 		var list = new VPile();
-		container.next(list);
-		list.add('back', new Button().value('<-').height(60).onAction(function() {
-			container.back();
-		}));
+		var page = new Background(new Margin(new VFlex([
+			[new Button().value('<-').height(60).onAction(function() {
+				container.back();
+			}), 'fixed'],
+			new VScroll(list),
+		]), 10)).color('transparent')/*.border('1px solid grey')*/;
+		container.next(page);
 		return request({
 			"method":"model."+modelId+".read",
 			"params":[itemIds, getFieldIdsToRequest(fieldsRes.fields)],
@@ -235,7 +241,7 @@ function displayList (viewId, modelId, formViewId, container, message, request, 
 						displayFieldValue(item, fieldsRes.fields[fieldId]),
 					]).height(30);
 				}))).color('lightgrey').border('1px solid')).onAction(function() {
-					displayForm(formViewId, modelId, itemId, container, message, request, list);
+					displayForm(formViewId, modelId, itemId, container, message, request, page);
 				}).height(fieldIds.length*30);
 				list.add(itemId, itemView);
 			});
@@ -308,22 +314,25 @@ function displayForm (viewId, modelId, itemId, container, message, request, prev
 		var changes = {};
 		var fieldIds = Object.keys(res.fields);
 		var form = new VPile();
-		container.next(form, previous);
-		form.add('back', new Button().value('<-').height(60).onAction(function() {
-			container.back();
-		}));
-		form.add('save', new Button().value('Enregistrer').height(60).onAction(function() {
-			message.value('enregistrement...');
-			request({
-				method: "model."+modelId+".write",
-				params: [[itemId], changes],
-			}).then(function() {
-				message.value("Enregistré");
-			}, function(err) {
-				message.value("Erreur lors de l'enregistrement");
-				console.log("Erreur lors de l'enregistrement", err);
-			});
-		}));
+		var page = new Background(new Margin(new VFlex([
+			[new Button().value('<-').height(60).onAction(function() {
+				container.back();
+			}), 'fixed'],
+			new VScroll(form),
+			[new Button().value('Enregistrer').height(60).onAction(function() {
+				message.value('enregistrement...');
+				request({
+					method: "model."+modelId+".write",
+					params: [[itemId], changes],
+				}).then(function() {
+					message.value("Enregistré");
+				}, function(err) {
+					message.value("Erreur lors de l'enregistrement");
+					console.log("Erreur lors de l'enregistrement", err);
+				});
+			}), 'fixed'],
+		]), 10)).color('transparent')/*.border('1px solid grey')*/;
+		container.next(page, previous);
 		return request({
 			"method":"model."+modelId+".read",
 			"params":[[itemId], getFieldIdsToRequest(res.fields)],
@@ -331,11 +340,11 @@ function displayForm (viewId, modelId, itemId, container, message, request, prev
 			fieldIds.forEach(function(fieldId) {
 				var propDisplayer = new HFlex([
 					[new Label().value(res.fields[fieldId].string).width(150), 'fixed'],
-					editFieldValue(dataRes[0], res.fields[fieldId], changes, container, message, request, form),
+					editFieldValue(dataRes[0], res.fields[fieldId], changes, container, message, request, page),
 				]).height(30);
 				form.add(fieldId, propDisplayer);
 			});
-			form.height(fieldIds.length*30);
+			// form.height(fieldIds.length*30);
 			message.value('loaded');
 		}, function(err) {
 			message.value("erreur");
@@ -379,9 +388,9 @@ var editFieldFactories = {
 	},
 	many2one: function(item, field, changes, container, message, request, currentPage) {
 		return new Button().value(item[field.name+'.rec_name']).onAction(function() {
-			container.content(createChoiceList(item[field.name], field, changes, message, request, function (itemId) {
+			container.next(createChoiceList(item[field.name], field, changes, message, request, function (itemId) {
 				changes[field.name] = itemId;
-				container.content(currentPage);
+				container.back();
 			}));
 		});
 	},
@@ -471,9 +480,6 @@ bindValue(loggedIn, function(loggedInParams) {
 				loggedIn.value(null);
 				session.value(null);
 			});
-		}));
-		menuBar.add('renew', new Button().value("renew").width(100).onAction(function() {
-			session.value(null);
 		}));
 		displayMainView(pageContainer, message, authenticatedRequest);
 		sessionObserver = bindValue(session, function(sessionToken) {
