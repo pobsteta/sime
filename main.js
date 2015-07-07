@@ -23,6 +23,7 @@ var Value = require('ksf/observable/Value');
 var bindValue = require('ksf/observable/bindValue');
 var MappedValue = require('ksf/observable/MappedValue');
 
+var DoublePanesStack = require('./DoublePanesStack');
 
 function createPersistableValue (name, initValue) {
 	var value = new Value(JSON.parse(localStorage.getItem(name)));
@@ -93,7 +94,22 @@ var rpcInterceptor = interceptor({
 var defaultRequest = require('rest/interceptor/defaultRequest');
 
 
-function displayMenu (menuItemId, container, message, request, previous) {
+
+function displayMainView (pageContainer, message, authenticatedRequest) {
+	var menuContainer = new Switch();
+	var mainContainer = new Switch();
+	pageContainer.content(new HFlex([
+		[menuContainer.width(200), 'fixed'],
+		mainContainer,
+	]));
+	displayMenu(null, menuContainer, message, authenticatedRequest, null, function(viewId, modelId, formViewId) {
+		var pagesDisplayer = new DoublePanesStack();
+		mainContainer.content(pagesDisplayer);
+		displayList(viewId, modelId, formViewId, pagesDisplayer, message, authenticatedRequest);
+	});
+}
+
+function displayMenu (menuItemId, container, message, request, previous, onAction) {
 	message.value('loading...');
 	request({
 		"method":"model.ir.ui.menu.search",
@@ -115,7 +131,7 @@ function displayMenu (menuItemId, container, message, request, previous) {
 			var menuItemLabel = new Value(childMenuItemId+'');
 			var menuItem = new HFlex([
 				[new Button().width(30).value('+').onAction(function() {
-					displayMenu(childMenuItemId, container, message, request, menuContainer);
+					displayMenu(childMenuItemId, container, message, request, menuContainer, onAction);
 				}), 'fixed'],
 				new VFlex([
 					new Reactive({
@@ -143,7 +159,7 @@ function displayMenu (menuItemId, container, message, request, previous) {
 										}
 									}
 									var modelId = res[0]["res_model"];
-									displayList(viewId, modelId, formViewId, container, message, request, menuContainer);
+									onAction(viewId, modelId, formViewId);
 								} else {
 									message.value('no list view');
 								}
@@ -189,22 +205,23 @@ function getFieldIdsToRequest (fields) {
 	return fieldIdsToRequest;
 }
 
-function displayList (viewId, modelId, formViewId, container, message, request, previous) {
+function displayList (viewId, modelId, formViewId, container, message, request, query) {
 	message.value('loading...');
+	query = query || [];
 	when.all([request({
 		"method":"model."+modelId+".fields_view_get",
 		"params":[viewId, "tree"],
 	}), request({
 		"method":"model."+modelId+".search",
-		"params":[[], 0, 10, null],
+		"params":[query, 0, 10, null],
 	})]).then(function(res) {
 		var fieldsRes = res[0];
 		var itemIds = res[1];
 		var fieldIds = Object.keys(fieldsRes.fields);
 		var list = new VPile();
-		container.content(list);
+		container.next(list);
 		list.add('back', new Button().value('<-').height(60).onAction(function() {
-			container.content(previous);
+			container.back();
 		}));
 		return request({
 			"method":"model."+modelId+".read",
@@ -291,9 +308,9 @@ function displayForm (viewId, modelId, itemId, container, message, request, prev
 		var changes = {};
 		var fieldIds = Object.keys(res.fields);
 		var form = new VPile();
-		container.content(form);
+		container.next(form, previous);
 		form.add('back', new Button().value('<-').height(60).onAction(function() {
-			container.content(previous);
+			container.back();
 		}));
 		form.add('save', new Button().value('Enregistrer').height(60).onAction(function() {
 			message.value('enregistrement...');
@@ -370,7 +387,11 @@ var editFieldFactories = {
 	},
 	one2many: function(item, field, changes, container, message, request, currentPage) {
 		return new Button().value('( ' + item[field.name].length + ' )').onAction(function() {
-			// displayList
+			var viewId = field.views.tree['view_id'];
+			var modelId = field.relation;
+			var formViewId = null;
+			var query = [field['relation_field'], '=', item.id];
+			displayList(viewId, modelId, formViewId, container, message, request, query);
 		});	
 	},
 	many2many: function(item, field) {
@@ -454,7 +475,7 @@ bindValue(loggedIn, function(loggedInParams) {
 		menuBar.add('renew', new Button().value("renew").width(100).onAction(function() {
 			session.value(null);
 		}));
-		displayMenu(null, pageContainer, message, authenticatedRequest);
+		displayMainView(pageContainer, message, authenticatedRequest);
 		sessionObserver = bindValue(session, function(sessionToken) {
 			if (sessionToken === null) {
 				var password;
