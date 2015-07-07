@@ -451,29 +451,40 @@ bindValue(loggedIn, function(loggedInParams) {
 				session.value(null);
 			});
 		}));
+		menuBar.add('renew', new Button().value("renew").width(100).onAction(function() {
+			session.value(null);
+		}));
 		displayMenu(null, pageContainer, message, authenticatedRequest);
 		sessionObserver = bindValue(session, function(sessionToken) {
 			if (sessionToken === null) {
-				// popupContainer.content(createAuthenticateForm(function(sessionToken) {
-				// 	res.session.value(sessionToken);
-				// 	popupContainer.content(null);
-				// }));
-				var password = window.prompt('password');
-				message.value('authenticating...');
-				loggedInRequest({ entity: {
-					"method":"common.db.login",
-					"params":[
-						loggedInParams.username,
-						password
-					]
-				}}).entity().then(function(loginRes) {
-					if (loginRes.result && loginRes.result !== false) {
-						message.value('authenticated');
-						session.value(loginRes.result[1]);		
-					} else {
-						message.value("erreur d'authentification");
-					}
-				});
+				var password;
+				var authenticationMessage = new Label();
+				popupContainer.content(new Background(
+					new Align(new VPile().width(200).content([
+						new LabelInput().placeholder("password").onInput(function(pw) {
+							password = pw;
+						}).height(30),
+						new Button().value("OK").height(30).onAction(function() {
+							authenticationMessage.value('authenticating...');
+							loggedInRequest({ entity: {
+								"method":"common.db.login",
+								"params":[
+									loggedInParams.username,
+									password
+								]
+							}}).entity().then(function(loginRes) {
+								if (loginRes.result && loginRes.result !== false) {
+									authenticationMessage.value('authenticated');
+									session.value(loginRes.result[1]);
+									popupContainer.content(null);	
+								} else {
+									authenticationMessage.value("erreur d'authentification");
+								}
+							});
+						}),
+						authenticationMessage.height(30),
+					]), 'middle', 'middle')
+				).color('lightgrey').opacity(0.8));
 			}
 		});
 	} else {
