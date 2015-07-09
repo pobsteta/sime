@@ -2,7 +2,7 @@
 	"strict": false,
 	"camelcase" : true,
 	"undef": true,
-	"unused": false,
+	"unused": true,
 	"curly": true,
 
 	"browser": true,
