@@ -202,7 +202,6 @@ module.exports = compose(_ContentDelegate, function() {
 								"params": [userId, token, true, {}],
 							}
 						}).entity().then(function(prefRes) {
-							// TODO: faut-il faire cela en asynchrone pour ne pas remodifier 'connection' dans le même tour ?
 							// store current connection values
 							connection.value({
 								url: url.value(),

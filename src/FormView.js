@@ -1,4 +1,6 @@
 var compose = require('ksf/utils/compose');
+var create = require('lodash/object/create');
+
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var Label = require('absolute/Label');
 var LabelInput = require('absolute/LabelInput');
@@ -26,34 +28,46 @@ var getFieldIdsToRequest = require('./getFieldIdsToRequest');
 */
 module.exports = compose(_ContentDelegate, function(args) {
 	this._args = args;
+	// load fields def early and only once
+	var fields = args.request({
+		"method":"model."+args.modelId+".fields_view_get",
+		"params":[null, "form"],
+	});
 	this._content = new Margin(new VFlex([
 		new VScroll(new Reactive({
 			value: new MappedValue(args.activeItem, function(itemId) {
-				var container = new VPile();
-				displayForm(args.modelId, itemId, container, args.message, args.request);
-				return container;
+				if (itemId) {
+					var container = new VPile();
+					displayForm(create(args, {
+						itemId: itemId,
+						fields: fields,
+						container: container,
+					}));
+					return container;					
+				} else {
+					return new Label().value("Aucun élément sélectionné");
+				}
 			}),
 			content: new Switch(),
 			prop: 'content',
 		})),
+
 	]), 10);
 
 });
 
-// TODO: load 'fields_view_get' only once
-function displayForm (modelId, itemId, container, message, request) {
-	message.value('loading...');
-	request({
-		"method":"model."+modelId+".fields_view_get",
-		"params":[null, "form"],
-	}).then(function(res) {
+function displayForm (args) {
+	var message = args.message;
+	var container = args.container;
+	message.value('loading form view ...');
+	args.fields.then(function(res) {
 		var changes = {};
 		var fieldIds = Object.keys(res.fields);
 		container.add('save', new Button().value('Enregistrer').height(60).onAction(function() {
 			message.value('enregistrement...');
-			request({
-				method: "model."+modelId+".write",
-				params: [[itemId], changes],
+			args.request({
+				method: "model."+args.modelId+".write",
+				params: [[args.itemId], changes],
 			}).then(function() {
 				message.value("Enregistré");
 			}, function(err) {
@@ -61,14 +75,18 @@ function displayForm (modelId, itemId, container, message, request) {
 				console.log("Erreur lors de l'enregistrement", err);
 			});
 		}));
-		return request({
-			"method":"model."+modelId+".read",
-			"params":[[itemId], getFieldIdsToRequest(res.fields)],
+		return args.request({
+			"method":"model."+args.modelId+".read",
+			"params":[[args.itemId], getFieldIdsToRequest(res.fields)],
 		}).then(function(dataRes) {
 			fieldIds.forEach(function(fieldId) {
 				var propDisplayer = new HFlex([
 					[new Label().value(res.fields[fieldId].string).width(150), 'fixed'],
-					editFieldValue(dataRes[0], res.fields[fieldId], changes, container, message, request),
+					editFieldValue(create(args, {
+						item: dataRes[0],
+						field: res.fields[fieldId],
+						changes: changes
+					}))
 				]).height(30);
 				container.add(fieldId, propDisplayer);
 			});
@@ -81,68 +99,76 @@ function displayForm (modelId, itemId, container, message, request) {
 }
 
 var editFieldFactories = {
-	boolean: function(item, field) {
-		return new Label().value(item[field.name] ? 'oui' : 'non'); // TODO: remplacer par le bon widget		
+	boolean: function(args) {
+		return new Label().value(args.item[args.field.name] ? 'oui' : 'non'); // TODO: remplacer par le bon widget		
 	},
-	integer: function(item, field) {
-		return new Label().value(item[field.name]+'');	
+	integer: function(args) {
+		return new Label().value(args.item[args.field.name]+'');	
 	},
-	biginteger: function(item, field) {
-		return new Label().value(item[field.name]+'');	
+	biginteger: function(args) {
+		return new Label().value(args.item[args.field.name]+'');	
 	},
-	char: function(item, field, changes) {
-		return new LabelInput().value(item[field.name]).onInput(function(newValue) {
-			changes[field.name] = newValue;
+	char: function(args) {
+		return new LabelInput().value(args.item[args.field.name]).onInput(function(newValue) {
+			args.changes[args.field.name] = newValue;
 		});	
 	},
-	text: function(item, field) {
-		return new Label().value(item[field.name]);	
+	text: function(args) {
+		return new Label().value(args.item[args.field.name]);	
 	},
-	float: function(item, field) {
-		return new Label().value(item[field.name]+'');	
+	float: function(args) {
+		return new Label().value(args.item[args.field.name]+'');	
 	},
-	numeric: function(item, field) {
-		return new Label().value(item[field.name]+'');	
+	numeric: function(args) {
+		return new Label().value(args.item[args.field.name]+'');	
 	},
-	date: function(item, field) {
-		return new Label().value(item[field.name]);	
+	date: function(args) {
+		return new Label().value(args.item[args.field.name]);	
 	},
-	datetime: function(item, field) {
-		return new Label().value(item[field.name]);	
+	datetime: function(args) {
+		return new Label().value(args.item[args.field.name]);	
 	},
-	time: function(item, field) {
-		return new Label().value(item[field.name]);	
+	time: function(args) {
+		return new Label().value(args.item[args.field.name]);	
 	},
-	many2one: function(item, field, changes, container, message, request) {
+	many2one: function(args) {
+		var field = args.field;
+		var item = args.item;
 		return new Button().value(item[field.name+'.rec_name']).onAction(function() {
-			container.next(createChoiceList(item[field.name], field, changes, message, request, function (itemId) {
-				changes[field.name] = itemId;
-				container.back();
-			}));
+			var modelId = field.relation;
+			var itemId = item[field.name];
+			args.nextItem(modelId, itemId);
+			// createChoiceList(item[field.name], field, changes, message, request, function (itemId) {
+			// 	changes[field.name] = itemId;
+			// });
 		});
 	},
-	one2many: function(item, field, changes, container, message, request) {
+	one2many: function(args) {
+		var field = args.field;
+		var item = args.item;
 		return new Button().value('( ' + item[field.name].length + ' )').onAction(function() {
-			var viewId = field.views.tree['view_id'];
+			// var viewId = field.views.tree['view_id'];
 			var modelId = field.relation;
-			var formViewId = null;
+			// var formViewId = null;
 			var query = [field['relation_field'], '=', item.id];
-			displayList(viewId, modelId, formViewId, container, message, request, query);
+			// displayList(viewId, modelId, formViewId, container, message, request, query);
+			args.nextCollection(modelId, query);
 		});	
 	},
-	many2many: function(item, field) {
-		return new Label().value('( ' + item[field.name].length + ' )');	
+	many2many: function(args) {
+		return new Label().value('( ' + args.item[args.field.name].length + ' )');	
 	},
 	// selection
 	// reference
 	// function
 	// property
 };
-function editFieldValue (item, field, changes, container, message, request, currentPage) {
+function editFieldValue (args) {
+	var field = args.field;
 	if (field.type in editFieldFactories) {
-		return editFieldFactories[field.type](item, field, changes, container, message, request, currentPage);
+		return editFieldFactories[field.type](args);
 	}
-	return new Label().value(JSON.stringify(item[field.name]));
+	return new Label().value(JSON.stringify(args.item[field.name]));
 }
 
 function createChoiceList (selectedItemId, field, changes, message, request, onInput) {

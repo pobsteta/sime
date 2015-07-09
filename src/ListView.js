@@ -1,7 +1,10 @@
 var when = require('when');
 var find = require('lodash/collection/find');
+var create = require('lodash/object/create');
 
 var compose = require('ksf/utils/compose');
+var bindValue = require('ksf/observable/bindValue');
+
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var Label = require('absolute/Label');
 var VFlex = require('absolute/VFlex');
@@ -13,6 +16,7 @@ var Background = require('absolute/Background');
 var Clickable = require('absolute/Clickable');
 
 var getFieldIdsToRequest = require('./getFieldIdsToRequest');
+
 
 /**
 @params args {
@@ -28,13 +32,18 @@ module.exports = compose(_ContentDelegate, function(args) {
 		new VScroll(container),
 	]), 10);
 
-	displayList(args.modelId, container, args.message, args.request, args.query, args.activeItem);
+	displayList(create(args, {
+		container: container,
+	}));
 });
 
-function displayList (modelId, container, message, request, query, activeItem) {
+function displayList (args) {
+	var message = args.message;
 	message.value('loading...');
-	query = query || [];
-	when.all([request({
+	var query = args.query || [];
+	var modelId = args.modelId;
+	var request = args.request;
+	return when.all([request({
 		"method":"model."+modelId+".fields_view_get",
 		"params":[null, "tree"],
 	}), request({
@@ -50,15 +59,20 @@ function displayList (modelId, container, message, request, query, activeItem) {
 		}).then(function(dataRes) {
 			itemIds.forEach(function(itemId) {
 				var item = find(dataRes, {id: itemId});
-				var itemView = new Clickable(new Background(new VPile().content(fieldIds.map(function(fieldId) {
+				var itemView = new Background(new VPile().content(fieldIds.map(function(fieldId) {
 					return new HFlex([
 						[new Label().value(fieldsRes.fields[fieldId].string).width(150), 'fixed'],
 						displayFieldValue(item, fieldsRes.fields[fieldId]),
 					]).height(30);
-				}))).color('lightgrey').border('1px solid')).onAction(function() {
-					activeItem.value(itemId);
-				}).height(fieldIds.length*30);
-				container.add(itemId, itemView);
+				}))).color('transparent').border('1px solid');
+				// TODO : remplacer ces listeners inividuels par un listener global...
+				bindValue(args.activeItem, function(activeItemId) {
+					itemView.color(activeItemId === itemId ? 'lightblue' : 'transparent');
+				});
+				args.container.add(itemId, new Clickable(itemView).onAction(function() {
+					args.activeItem.value(itemId);
+					args.onAction && args.onAction(itemId);
+				}).height(fieldIds.length*30));
 			});
 			message.value('loaded');
 		}, function(err) {

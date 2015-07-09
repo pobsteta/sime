@@ -4,7 +4,7 @@ var _ContentDelegate = require('absolute/_ContentDelegate');
 var HFlex = require('absolute/HFlex');
 
 var MapView = require('./MapView');
-var ListFormView = require('./ListFormView');
+var FormView = require('./FormView');
 
 /**
 @params args {
@@ -16,6 +16,6 @@ var ListFormView = require('./ListFormView');
 module.exports = compose(_ContentDelegate, function(args) {
 	this._content = new HFlex([
 		new MapView(args),
-		new ListFormView(args),
+		new FormView(args),
 	]);
 });
