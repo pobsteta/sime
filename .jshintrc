@@ -4,6 +4,7 @@
 	"undef": true,
 	"unused": true,
 	"curly": true,
+	"indent": 1,
 
 	"browser": true,
 	"devel": true,
