@@ -1,19 +1,20 @@
 var compose = require('ksf/utils/compose');
+var _Destroyable = require('ksf/base/_Destroyable');
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var Label = require('absolute/Label');
 
 var ol = require('openlayers');
 // var ol = require('openlayers/dist/ol-debug');
 var VFlex = require('absolute/VFlex');
-var Element = require('absolute/Element');
+var Elmt = require('absolute/Element');
 
 var rest = require('rest');
 
 var proj4 = window.proj4 = require('proj4');
 proj4.defs("EPSG:2154","+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
 
-var Map = compose(_ContentDelegate, function(args) {
-	this._content = new Element();
+var Map = compose(_ContentDelegate, _Destroyable, function(args) {
+	this._content = new Elmt();
 
 	var wfsFormat = new ol.format.GML2({
 			featureNS: { tryton: 'http://www.tryton.org/' },
@@ -47,16 +48,35 @@ var Map = compose(_ContentDelegate, function(args) {
 	    }),
 			new ol.layer.Vector({
 				source: wfsSource,
-				style: new ol.style.Style({
-			    stroke: new ol.style.Stroke({
-			      color: 'rgba(0, 0, 255, 1.0)',
-			      width: 2
-			    })
-			  })
+				// style: new ol.style.Style({
+			  //   stroke: new ol.style.Stroke({
+			  //     color: 'rgba(0, 0, 255, 1.0)',
+			  //     width: 2
+			  //   })
+			  // })
 			})
 	  ],
 	  target: this._content.domNode
 	});
+
+	var select;
+	this.olMap.addInteraction(select = new ol.interaction.Select({
+	  condition: ol.events.condition.click
+	}));
+	select.on('select', function(e) {
+    var selection = e.target.getFeatures();
+		if (selection.getLength()) {
+			args.activeItem.value(parseInt(selection.item(0).get('id')));
+		}
+	});
+	this._own(args.activeItem.onChange(function(id) {
+		var selectedFeatures = select.getFeatures();
+		selectedFeatures.clear();
+		var f = wfsSource.getFeatureById(args.modelId + '.' + id);
+		if (f) {
+			selectedFeatures.push(f);
+		}
+	}));
 }, {
 	_updateSize: function() {
 		var w = this._content.width(),
