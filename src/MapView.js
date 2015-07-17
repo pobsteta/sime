@@ -24,6 +24,9 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 	var wfsSource = new ol.source.Vector({
 		loader: function(extent, resolution, projection) {
 			var url = 'http://admin:admin@cg94.bioecoforests.teclib.net:8001/tryton1//model/wfs/wfs/wfs?SERVICE=WFS&VERSION=1.0.0&REQUEST=GetFeature&TYPENAME=tryton:' + args.modelId + '&SRSNAME=EPSG:2154&bbox=' + ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:2154').join(',') + '';
+			if (args.query) {
+				url += '&FILTER=%3Cogc%3AFilter%3E%3Cogc%3AOr%3E%3Cogc%3APropertyIsEqualTo%3E%3Cogc%3APropertyName%3E'+args.query[0]+'%3C%2Fogc%3APropertyName%3E%3Cogc%3ALiteral%3E'+args.query[2]+'%3C%2Fogc%3ALiteral%3E%3C%2Fogc%3APropertyIsEqualTo%3E%3C%2Fogc%3AOr%3E%3C%2Fogc%3AFilter%3E';
+			}
 			rest(url).then(function(response) {
 					var features = wfsFormat.readFeatures(response.raw.responseXML, {
 						dataProjection: 'EPSG:2154',
