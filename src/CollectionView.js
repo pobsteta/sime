@@ -1,10 +1,9 @@
-// var create = require('lodash/object/create');
 var compose = require('ksf/utils/compose');
 var _ContentDelegate = require('absolute/_ContentDelegate');
-var HFlex = require('absolute/HFlex');
 
 var MapView = require('./MapView');
 var ListFormView = require('./ListFormView');
+var MaybeMapContainer = require('./MaybeMapContainer');
 
 /**
 @params args {
@@ -14,8 +13,5 @@ var ListFormView = require('./ListFormView');
 }
 */
 module.exports = compose(_ContentDelegate, function(args) {
-	this._content = new HFlex([
-		new MapView(args),
-		new ListFormView(args),
-	]);
+	this._content = new MaybeMapContainer(args, ListFormView, MapView);
 });

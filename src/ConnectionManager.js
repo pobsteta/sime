@@ -112,7 +112,6 @@ var trytonLogin = function(connectionValue, session, password) {
 			return loginRes;
 		} else {
 			return when.reject(loginRes);
-			// authenticationMessage.value("erreur d'authentification");
 		}
 	});
 };
