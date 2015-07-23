@@ -38,23 +38,27 @@ var mime = require('rest/interceptor/mime');
 var errorCode = require('rest/interceptor/errorCode');
 var interceptor = require('rest/interceptor');
 var defaultInterceptor = require('rest/interceptor/defaultRequest');
+var basicAuth = require('rest/interceptor/basicAuth');
 
 var registry = require('rest/mime/registry');
-registry.register('application/json-rpc', {
-    read: function(str) {
-        return JSON.parse(str);
+registry.register('application/json-rpc', require('rest/mime/type/application/json'));
+var xmlSerializer = new XMLSerializer();
+registry.register('text/xml', {
+    read: function (str, opts) {
+        return opts.response.raw.responseXML;
     },
-    write: function(obj) {
-    	return JSON.stringify(obj);
+    write: function (obj, opts) {
+        return xmlSerializer.serializeToString(obj);
     }
 });
+
 // intercepteur pour une session utilis
 function forgeRequest(request, config) {
 	request.params = request.params || [];
 	request.params.unshift(config.session.value());
 	request.params.unshift(config.userId);
 	request.params.push(config.preferences);
-	return {entity: request};    		
+	return {entity: request};
 }
 function  unforgeRequest (request) {
 	return {
@@ -88,6 +92,25 @@ var trytonAuthenticatedInterceptor = interceptor({
     		return when.reject(response.entity.error);
     	}
         return response.entity.result;
+    },
+});
+
+var wfsInterceptor = interceptor({
+    request: function (request, config) {
+			request.path = config.prefix + request.path;
+    	var pwd = config.passwordR.value();
+    	if (pwd) {
+				request.password = pwd;
+    		return request;
+    	} else {
+    		return when.promise(function(resolve) {
+    			var cancel = config.passwordR.onChange(function(pwd) {
+    				cancel();
+						request.password = pwd;
+						resolve(request);
+    			});
+    		});
+    	}
     },
 });
 
@@ -129,10 +152,11 @@ module.exports = compose(_ContentDelegate, function() {
 	});
 
 	var connection = this._connection = new PersistableValue('connection'); // null or {userId, userPref}
+	var session = new Value(null); // null or sessionToken
+	var passwordValue = new Value(null);
 	bindValueDestroyable(this._connection, function(connectionValue) {
-		var session = new PersistableValue('session'); // null or sessionToken
 		if (connectionValue) {
-			var authenticatedTrytonRequest = jsonRpcRequest
+			var authenticatedRpcRequest = jsonRpcRequest
 				.wrap(defaultInterceptor, {path: connectionValue.url})
 				.wrap(trytonAuthenticatedInterceptor, {
 					userId: connectionValue.userId,
@@ -140,8 +164,18 @@ module.exports = compose(_ContentDelegate, function() {
 					preferences: connectionValue.userPref,
 				});
 
+			var authenticatedWfsRequest = rest
+				.wrap(mime, { mime: 'text/xml'})
+				.wrap(basicAuth, { username: connectionValue.userName })
+				// TODO: demander comment déterminer l'URL WFS
+				.wrap(wfsInterceptor, {
+					prefix: connectionValue.url.replace('8000', '8001') + '/model/wfs/wfs/wfs?SERVICE=WFS&VERSION=1.0.0&',
+					passwordR: passwordValue
+				});
+
 			var app = new App({
-				request: authenticatedTrytonRequest,
+				request: authenticatedRpcRequest,
+				wfsRequest: authenticatedWfsRequest,
 				logout: function() {
 					connection.value(null);
 					session.value(null);
@@ -152,16 +186,18 @@ module.exports = compose(_ContentDelegate, function() {
 				app,
 				bindValueDestroyable(session, function(sessionToken) {
 					if (!sessionToken) {
-						var password;
+						var passwordInput;
 						var authenticationMessage = new Label();
 						popupContainer.content(new Background(
 							new Align(new VPile().width(200).content([
-								password = new LabelInput().placeholder("password").height(30),
+								passwordInput = new LabelInput().placeholder("password").height(30),
 								new Button().value("OK").height(30).onAction(function() {
 									authenticationMessage.value('authenticating...');
-									trytonLogin(connectionValue, session, password.value()).then(function() {
+									var pwd = passwordInput.value();
+									trytonLogin(connectionValue, session, pwd).then(function() {
 										authenticationMessage.value('authenticated');
 										popupContainer.content(null);
+										passwordValue.value(pwd);
 									}, function() {
 										authenticationMessage.value('authentication error');
 									});
@@ -174,17 +210,18 @@ module.exports = compose(_ContentDelegate, function() {
 			];
 		} else {
 			var connectionParamsValue = connectionParams.value();
-			var url, username, password, message;
+			var url, username, passwordInput, message;
 			appContainer.content(new Align(new VPile().content([
 				url = new LabelInput().placeholder('url').height(30).value(connectionParamsValue.url),
 				username = new LabelInput().placeholder('username').height(30).value(connectionParamsValue.username),
-				password = new LabelInput().placeholder('password').height(30),
+				passwordInput = new LabelInput().placeholder('password').height(30),
 				new Button().value('Login').height(30).onAction(function() {
 					message.value('login...');
+					var pwd = passwordInput.value();
 					trytonLogin({
 						url: url.value(),
 						userName: username.value(),
-					}, session, password.value()).then(function(loginRes) {
+					}, session, pwd).then(function(loginRes) {
 						var userId = loginRes.result[0];
 						var token = loginRes.result[1];
 
@@ -194,6 +231,9 @@ module.exports = compose(_ContentDelegate, function() {
 							url: url.value(),
 							username: username.value(),
 						});
+
+						passwordValue.value(pwd);
+
 						return jsonRpcRequest({
 							path: url.value(),
 							entity: {
@@ -208,7 +248,7 @@ module.exports = compose(_ContentDelegate, function() {
 								userPref: prefRes.result,
 								userName: username.value(),
 							});
-						});						
+						});
 					}, function() {
 						message.value('login error');
 					});
