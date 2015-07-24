@@ -113,6 +113,12 @@ var wfsInterceptor = interceptor({
     		});
     	}
     },
+		success: function (response) {
+			if (response.entity.firstChild.nodeName === "ServiceExceptionReport") {
+				return when.reject(response);
+			}
+      return response;
+    }
 });
 
 var jsonRpcRequest = rest
@@ -167,6 +173,7 @@ module.exports = compose(_ContentDelegate, function() {
 
 			var authenticatedWfsRequest = rest
 				.wrap(mime, { mime: 'text/xml'})
+				.wrap(errorCode)
 				.wrap(basicAuth, { username: connectionValue.userName })
 				// TODO: demander comment déterminer l'URL WFS
 				.wrap(wfsInterceptor, {
