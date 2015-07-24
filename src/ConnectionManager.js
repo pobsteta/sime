@@ -1,5 +1,6 @@
 var when = require('when');
 var compose = require('ksf/utils/compose');
+var on = require('ksf/utils/on');
 var bindValueDestroyable = require('ksf/observable/bindValueDestroyable');
 // var PersistableValue = require('ksf/observable/PersistableValue');
 var Value = require('ksf/observable/Value');
@@ -73,7 +74,7 @@ var trytonAuthenticatedInterceptor = interceptor({
     		return forgeRequest(request, config);
     	} else {
     		return when.promise(function(resolve) {
-    			var cancel = config.session.onChange(function() {
+    			var cancel = on(config.session, 'change', function() {
     				cancel();
     				resolve(forgeRequest(request, config));
     			});
