@@ -9,6 +9,8 @@ var HPile = require('absolute/HPile');
 var ZPile = require('absolute/ZPile');
 var Elmt = require('absolute/Element');
 
+var when = require('when');
+
 var proj4 = window.proj4 = require('proj4');
 proj4.defs("EPSG:2154","+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
 
@@ -23,6 +25,7 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 	this._content = new ZPile().content([
 		this._mapEl = new Elmt(),
 		new HPile().content([
+			this._centerBtn = new Button().value("Centrer sur la géométrie").onAction(this._centerActive.bind(this)).width(100).visible(false),
 			this._editBtn = new Button().value("Editer la géométrie").onAction(this._toggleEdit.bind(this)).width(100).visible(false),
 			this._addPartBtn = new Button().value("Ajouter une partie").onAction(this._addGeomPart.bind(this)).width(100).visible(false),
 			this._removePartBtn = new Button().value("Supprimer une partie").onAction(this._removeGeomPart.bind(this)).width(100).visible(false),
@@ -140,8 +143,13 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 	_setActiveId: function(id) {
 		if (id) {
 			this._editBtn.visible(true);
+			this._centerBtn.visible(true);
 		} else {
 			this._editBtn.visible(false);
+			this._centerBtn.visible(false);
+		}
+		if (this._editMode) {
+			this._disableEditMode();
 		}
 		this._refreshActiveHighlighting();
 	},
@@ -160,12 +168,19 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 		this._itemSelectTool.getFeatures().clear();
 		this.olMap.removeInteraction(this._itemSelectTool);
 
-		var activeFeature = this._getActiveFeature();
-		if (activeFeature) {
-			var activeGeom = activeFeature.getGeometry(),
-				editingParts;
+		this._getActiveGeom().then(this._editGeometry.bind(this));
+	},
+	_centerActive: function() {
+		this._getActiveGeom().then(function(geom) {
+			this.olMap.getView().fit(geom, this.olMap.getSize());
+		}.bind(this));
+	},
+	_editGeometry: function(geom) {
+		if (geom) {
+			this.olMap.getView().fit(geom, this.olMap.getSize());
+			var editingParts;
 			if (this._geomType === 'Polygon') {
-				editingParts = activeGeom.getPolygons().map(function(geomPart) {
+				editingParts = geom.getPolygons().map(function(geomPart) {
 					// converts coordinates from XYZ to only XY
 					// since it causes an error when merging with drawn geometries
 					// cf. https://github.com/openlayers/ol3/issues/2700
@@ -176,14 +191,14 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 					})));
 				});
 			} else if (this._geomType === 'LineString') {
-				editingParts = activeGeom.getLineStrings().map(function(geomPart) {
+				editingParts = geom.getLineStrings().map(function(geomPart) {
 					// converts coordinates from XYZ to only XY
 					return new ol.Feature(new ol.geom.LineString(geomPart.getCoordinates().map(function(coords) {
 							return coords.slice(0,2);
 					})));
 				});
 			} else if (this._geomType === 'Point') {
-				editingParts = activeGeom.getPoints().map(function(geomPart) {
+				editingParts = geom.getPoints().map(function(geomPart) {
 					// converts coordinates from XYZ to only XY
 					return new ol.Feature(new ol.geom.Point(geomPart.getCoordinates().slice(0,2)));
 				});
@@ -227,6 +242,29 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 	},
 	_getActiveFeature: function() {
 		return this._wfsSource.getFeatureById(this._args.modelId + '.' + this._args.activeItem.value());
+	},
+	_getActiveGeom: function() {
+		var activeFeature = this._getActiveFeature();
+		var self = this;
+		return when.promise(function(resolve) {
+			if (activeFeature) {
+				// if feature is loaded on map, use its geometry directly
+				resolve(activeFeature.getGeometry());
+			} else {
+				// otherwise, make a request to get the geom
+				self._args.request({ method: "model." + self._args.modelId + ".read", params: [
+					[self._args.activeItem.value()],
+					['geom'],
+				]}).then(function(res) {
+					var geojson = res[0].geom;
+					var geom = null;
+					if (geojson) {
+						geom = new ol.format.GeoJSON().readGeometry(geojson).transform('EPSG:2154', 'EPSG:3857');
+					}
+					resolve(geom);
+				});
+			}
+		});
 	},
 	_updateSize: function() {
 		var w = this._mapEl.width(),
