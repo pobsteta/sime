@@ -64,12 +64,14 @@ module.exports = compose(_ContentDelegate, function(args) {
 	this._stack = [];
 
 	this._pathBar.add('back', new Button().value('<').width(30).onAction(this._back.bind(this)));
-	this._nextCollection(args.modelId);
+	this._nextCollection(args.modelId, null, args.listViewId, args.formViewId);
 }, {
-	_nextCollection: function(modelId, query) {
+	_nextCollection: function(modelId, query, listViewId, formViewId) {
 		var args = create(this._args, {
 			modelId: modelId,
 			query: query,
+			listViewId: listViewId,
+			formViewId: formViewId,
 			activeItem: new Value(),
 			nextCollection: this._nextCollection.bind(this),
 			nextItem: this._nextItem.bind(this),
@@ -79,9 +81,10 @@ module.exports = compose(_ContentDelegate, function(args) {
 
 		this._next(view, pathElement, {modelId: modelId, query: query});
 	},
-	_nextItem: function(modelId, itemId) {
+	_nextItem: function(modelId, itemId, formViewId) {
 		var args = create(this._args, {
 			modelId: modelId,
+			formViewId: formViewId,
 			activeItem: new Value(itemId),
 			nextCollection: this._nextCollection.bind(this),
 			nextItem: this._nextItem.bind(this),

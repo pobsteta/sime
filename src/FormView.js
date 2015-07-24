@@ -31,7 +31,7 @@ module.exports = compose(_ContentDelegate, function(args) {
 	// load fields def early and only once
 	var fields = args.request({
 		"method":"model."+args.modelId+".fields_view_get",
-		"params":[null, "form"],
+		"params":[args.formViewId || null, "form"],
 	});
 	this._content = new Margin(new VFlex([
 		new VScroll(new Reactive({
@@ -43,7 +43,7 @@ module.exports = compose(_ContentDelegate, function(args) {
 						fields: fields,
 						container: container,
 					}));
-					return container;					
+					return container;
 				} else {
 					return new Label().value("Aucun élément sélectionné");
 				}
@@ -61,6 +61,7 @@ function displayForm (args) {
 	var container = args.container;
 	message.value('loading form view ...');
 	args.fields.then(function(res) {
+		var arch = new DOMParser().parseFromString(res.arch, 'application/xml')
 		var changes = {};
 		var fieldIds = Object.keys(res.fields);
 		container.add('save', new Button().value('Enregistrer').height(60).onAction(function() {
@@ -85,7 +86,8 @@ function displayForm (args) {
 					editFieldValue(create(args, {
 						item: dataRes[0],
 						field: res.fields[fieldId],
-						changes: changes
+						changes: changes,
+						arch: arch,
 					}))
 				]).height(30);
 				container.add(fieldId, propDisplayer);
@@ -100,36 +102,36 @@ function displayForm (args) {
 
 var editFieldFactories = {
 	boolean: function(args) {
-		return new Label().value(args.item[args.field.name] ? 'oui' : 'non'); // TODO: remplacer par le bon widget		
+		return new Label().value(args.item[args.field.name] ? 'oui' : 'non'); // TODO: remplacer par le bon widget
 	},
 	integer: function(args) {
-		return new Label().value(args.item[args.field.name]+'');	
+		return new Label().value(args.item[args.field.name]+'');
 	},
 	biginteger: function(args) {
-		return new Label().value(args.item[args.field.name]+'');	
+		return new Label().value(args.item[args.field.name]+'');
 	},
 	char: function(args) {
 		return new LabelInput().value(args.item[args.field.name]).onInput(function(newValue) {
 			args.changes[args.field.name] = newValue;
-		});	
+		});
 	},
 	text: function(args) {
-		return new Label().value(args.item[args.field.name]);	
+		return new Label().value(args.item[args.field.name]);
 	},
 	float: function(args) {
-		return new Label().value(args.item[args.field.name]+'');	
+		return new Label().value(args.item[args.field.name]+'');
 	},
 	numeric: function(args) {
-		return new Label().value(args.item[args.field.name]+'');	
+		return new Label().value(args.item[args.field.name]+'');
 	},
 	date: function(args) {
-		return new Label().value(args.item[args.field.name]);	
+		return new Label().value(args.item[args.field.name]);
 	},
 	datetime: function(args) {
-		return new Label().value(args.item[args.field.name]);	
+		return new Label().value(args.item[args.field.name]);
 	},
 	time: function(args) {
-		return new Label().value(args.item[args.field.name]);	
+		return new Label().value(args.item[args.field.name]);
 	},
 	many2one: function(args) {
 		var field = args.field;
@@ -147,16 +149,23 @@ var editFieldFactories = {
 		var field = args.field;
 		var item = args.item;
 		return new Button().value('( ' + item[field.name].length + ' )').onAction(function() {
-			// var viewId = field.views.tree['view_id'];
 			var modelId = field.relation;
-			// var formViewId = null;
 			var query = [field['relation_field'], '=', item.id];
-			// displayList(viewId, modelId, formViewId, container, message, request, query);
-			args.nextCollection(modelId, query);
-		});	
+
+			// TODO: à sortir dans un utilitaire ?
+			var fieldElement = args.arch.querySelector('field[name="'+field.name+'"]')
+			var viewTypes = fieldElement.getAttribute('mode').split(',')
+			var viewIds = fieldElement.getAttribute('view_ids').split(',')
+			var viewsByType = viewTypes.reduce(function(o, type, i){
+				o[type] = viewIds[i]
+				return o
+			}, {})
+
+			args.nextCollection(modelId, query, viewsByType.tree, viewsByType.form);
+		});
 	},
 	many2many: function(args) {
-		return new Label().value('( ' + args.item[args.field.name].length + ' )');	
+		return new Label().value('( ' + args.item[args.field.name].length + ' )');
 	},
 	// selection
 	// reference

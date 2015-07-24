@@ -23,11 +23,13 @@ module.exports = compose(_ContentDelegate, function(args) {
 		[new VFlex([
 			[new Button().value("logout").onAction(args.logout).height(30), 'fixed'],
 			this._menu = new Menu(create(args, {
-				onDisplayModel: function(modelId) {
+				onDisplayModel: function(modelId, listViewId, formViewId) {
 					mainArea.content(new ModelView(create(args, {
 						modelId: modelId,
+						listViewId: listViewId,
+						formViewId: formViewId,
 						message: message
-					})));					
+					})));
 				},
 				message: message,
 			})).width(300),

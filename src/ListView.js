@@ -45,7 +45,7 @@ function displayList (args) {
 	var request = args.request;
 	return when.all([request({
 		"method":"model."+modelId+".fields_view_get",
-		"params":[null, "tree"],
+		"params":[args.listViewId || null, "tree"],
 	}), request({
 		"method":"model."+modelId+".search",
 		"params":[query, 0, 10, null],
@@ -84,45 +84,45 @@ function displayList (args) {
 
 var displayFieldFactories = {
 	boolean: function(item, field) {
-		return new Label().value(item[field.name] ? 'oui' : 'non'); // TODO: remplacer par le bon widget		
+		return new Label().value(item[field.name] ? 'oui' : 'non'); // TODO: remplacer par le bon widget
 	},
 	integer: function(item, field) {
-		return new Label().value(item[field.name]+'');	
+		return new Label().value(item[field.name]+'');
 	},
 	biginteger: function(item, field) {
-		return new Label().value(item[field.name]+'');	
+		return new Label().value(item[field.name]+'');
 	},
 	char: function(item, field) {
-		return new Label().value(item[field.name]);	
+		return new Label().value(item[field.name]);
 	},
 	text: function(item, field) {
-		return new Label().value(item[field.name]);	
+		return new Label().value(item[field.name]);
 	},
 	float: function(item, field) {
-		return new Label().value(item[field.name]+'');	
+		return new Label().value(item[field.name]+'');
 	},
 	numeric: function(item, field) {
-		return new Label().value(item[field.name]+'');	
+		return new Label().value(item[field.name]+'');
 	},
 	date: function(item, field) {
-		return new Label().value(item[field.name]);	
+		return new Label().value(item[field.name]);
 	},
 	datetime: function(item, field) {
-		return new Label().value(item[field.name]);	
+		return new Label().value(item[field.name]);
 	},
 	time: function(item, field) {
-		return new Label().value(item[field.name]);	
+		return new Label().value(item[field.name]);
 	},
 	// selection
 	// reference
 	many2one: function(item, field) {
-		return new Label().value(item[field.name+'.rec_name']);	
+		return new Label().value(item[field.name+'.rec_name']);
 	},
 	one2many: function(item, field) {
-		return new Label().value('( ' + item[field.name].length + ' )');	
+		return new Label().value('( ' + item[field.name].length + ' )');
 	},
 	many2many: function(item, field) {
-		return new Label().value('( ' + item[field.name].length + ' )');	
+		return new Label().value('( ' + item[field.name].length + ' )');
 	},
 	// function
 	// property
