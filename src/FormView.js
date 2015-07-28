@@ -1,4 +1,5 @@
 var compose = require('ksf/utils/compose');
+var on = require('ksf/utils/on')
 var create = require('lodash/object/create');
 
 var _ContentDelegate = require('absolute/_ContentDelegate');
@@ -40,11 +41,11 @@ module.exports = compose(_Destroyable, _ContentDelegate, function(args) {
 			value: new MappedValue(args.activeItem, function(itemId) {
 				if (itemId) {
 					var container = new VPile();
-					self.own('destroyForm', displayForm(create(args, {
+					self._own(displayForm(create(args, {
 						itemId: itemId,
 						fields: fields,
 						container: container,
-					})));
+					})), 'destroyForm');
 					return container;
 				} else {
 					return new Label().value("Aucun élément sélectionné");
@@ -62,25 +63,28 @@ function displayForm (args) {
 	var message = args.message;
 	var container = args.container;
 	message.value('loading form view ...');
-	var changes = {};
-	var canceler = on(args.saver, 'save', function () {
+	var onSaveCanceler = on(args.saver, 'save', function () {
 		message.value('enregistrement...');
-		args.request({
+		return args.request({
 			method: "model."+args.modelId+".write",
-			params: [[args.itemId], changes],
+			params: [[args.itemId], args.changes.attrs],
 		}).then(function() {
 			message.value("Enregistré");
-			changes = {}
+			args.changes.attrs = {}
 		}, function(err) {
 			message.value("Erreur lors de l'enregistrement");
 			console.log("Erreur lors de l'enregistrement", err);
+			return new Error('writeError', "Erreur lors de l'enregistrement");
 		});
+	})
+	var onCancelCanceler = on(args.saver, 'cancel', function () {
+		args.changes.attrs = {}
 	})
 	args.fields.then(function(res) {
 		var arch = new DOMParser().parseFromString(res.arch, 'application/xml')
 		var fieldIds = Object.keys(res.fields);
 		container.add('save', new Button().value('Enregistrer').height(60).onAction(function() {
-			args.saver.save()
+			args.saver.saveChanges()
 		}));
 		return args.request({
 			"method": "model."+args.modelId+".read",
@@ -92,9 +96,8 @@ function displayForm (args) {
 					editFieldValue(create(args, {
 						item: dataRes[0],
 						field: res.fields[fieldId],
-						changes: changes,
 						arch: arch,
-					}))
+					})),
 				]).height(30);
 				container.add(fieldId, propDisplayer);
 			});
@@ -104,7 +107,10 @@ function displayForm (args) {
 			console.log("erreur", err);
 		});
 	}).done();
-	return canceler;
+	return [
+		onSaveCanceler,
+		onCancelCanceler,
+	];
 }
 
 var editFieldFactories = {
@@ -119,7 +125,7 @@ var editFieldFactories = {
 	},
 	char: function(args) {
 		return new LabelInput().value(args.item[args.field.name]).onInput(function(newValue) {
-			args.changes[args.field.name] = newValue;
+			args.changes.attrs[args.field.name] = newValue;
 		});
 	},
 	text: function(args) {

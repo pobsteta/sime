@@ -1,3 +1,4 @@
+var create = require('lodash/object/create')
 var compose = require('ksf/utils/compose');
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var VFlex = require('absolute/VFlex');
@@ -13,56 +14,50 @@ var Switch = require('absolute/Switch');
 
 var Value = require('ksf/observable/Value');
 
-/**
-@params args {
-	request
-	message
-	onDisplayModel
-}
-*/
-module.exports = compose(_ContentDelegate, function(args) {
-	this._content = new Switch();
 
-	displayMenu(null, this._content, args.message, args.request, null, args.onDisplayModel, args.saver);
-});
-
-function displayMenu (menuItemId, container, message, request, previous, onAction, saver) {
+function displayMenu (args) {
+	var menuItemId = args.menuItemId
+	var message = args.message
+	var request = args.request
 	message.value('loading...');
 	request({
-		"method":"model.ir.ui.menu.search",
-		"params":[
-			[["parent","=",menuItemId]],
+		"method": "model.ir.ui.menu.search",
+		"params": [
+			[["parent", "=", menuItemId]],
 			0,
 			1000,
 			null,
-		]
+		],
 	}).then(function(res) {
 		var menuContainer = new VPile();
 		var menuPage = new Margin(new VScroll(menuContainer), 10);
-		container.content(menuPage);
+		args.container.content(menuPage);
 		if (menuItemId !== null) {
 			menuContainer.add('back', new Button().value('<-').height(60).onAction(function() {
-				container.content(previous);
+				args.container.content(args.previous);
 			}));
 		}
 		res.forEach(function(childMenuItemId) {
-			var menuItemLabel = new Value(childMenuItemId+'');
+			var menuItemLabel = new Value(childMenuItemId + '');
 			var menuItem = new HFlex([
 				[new Button().width(30).value('+').onAction(function() {
-					displayMenu(childMenuItemId, container, message, request, menuPage, onAction, saver);
+					displayMenu(create(args, {
+						menuItemId: childMenuItemId,
+						//container: menuPage,
+					}));
 				}), 'fixed'],
 				new VFlex([
 					new Reactive({
 						value: menuItemLabel,
 						content: new Button().color('transparent').value(childMenuItemId+'').onAction(function() {
 							message.value("looking for list view...");
-							saver.save().then(function () {
+							args.saver.ensureChangesAreSaved().then(function () {
 								return request({
-									"method":"model.ir.action.keyword.get_keyword",
-									"params":[
+									"method": "model.ir.action.keyword.get_keyword",
+									"params": [
 										"tree_open",
-										["ir.ui.menu", childMenuItemId]
-									]
+										["ir.ui.menu", childMenuItemId],
+									],
 								})
 							}).then(function(res) {
 								if (res.length) {
@@ -80,15 +75,15 @@ function displayMenu (menuItemId, container, message, request, previous, onActio
 										}
 									}
 									var modelId = res[0]["res_model"];
-									onAction(modelId, viewId, formViewId);
+									args.onDisplayModel(modelId, viewId, formViewId);
 								} else {
 									message.value('no list view');
 								}
-							}, function(err) {
 								message.value("error");
+							}, function(err) {
 								console.log("erreur lors de la recherche d'une vue de type liste pour le menu", childMenuItemId, err);
-							}).done();
-						})
+							});
+						}),
 					}),
 					[new Background(new Space()).height(1).color('#eee'), 'fixed'],
 				]),
@@ -99,7 +94,7 @@ function displayMenu (menuItemId, container, message, request, previous, onActio
 				"params":[
 					[childMenuItemId],
 					["childs", "name", "parent", "favorite", "active", "icon", "parent.rec_name", "rec_name", "_timestamp"],
-				]
+				],
 			}).then(function(res) {
 				menuItemLabel.value(res[0].name);
 			}, function() {
@@ -112,3 +107,20 @@ function displayMenu (menuItemId, container, message, request, previous, onActio
 		console.log("erreur", err);
 	}).done();
 }
+
+
+/**
+@params args {
+	request
+	message
+	onDisplayModel
+	saver
+}
+*/
+module.exports = compose(_ContentDelegate, function(args) {
+	this._content = new Switch();
+
+	displayMenu(create(args, {
+		container: this._content,
+	}))
+});

@@ -1,4 +1,5 @@
 var compose = require('ksf/utils/compose');
+var _Destroyable = require('ksf/base/_Destroyable');
 var create = require('lodash/object/create');
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var HPile = require('absolute/HPile');
@@ -13,7 +14,6 @@ var TransformedValue = require('ksf/observable/TransformedValue');
 
 var CollectionView = require('./CollectionView');
 var ItemView = require('./ItemView');
-var Saver = require('./utils/Saver');
 
 var PathElement = compose(_ContentDelegate, function(args) {
 	var modelName;
@@ -55,9 +55,8 @@ Elle maintient l'état du 'path' de navigation
 	request
 }
 */
-module.exports = compose(_ContentDelegate, function(args) {
+module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	this._args = args;
-	this._saver = new Saver();
 	this._content = new VFlex([
 		[this._pathBar = new HPile().height(30), 'fixed'],
 		this._mainArea = new Switch(),
@@ -77,7 +76,6 @@ module.exports = compose(_ContentDelegate, function(args) {
 			activeItem: new Value(),
 			nextCollection: this._nextCollection.bind(this),
 			nextItem: this._nextItem.bind(this),
-			saver: this._saver,
 		});
 		var view = new CollectionView(args);
 		var pathElement = new PathElement(args);
@@ -91,7 +89,6 @@ module.exports = compose(_ContentDelegate, function(args) {
 			activeItem: new Value(itemId),
 			nextCollection: this._nextCollection.bind(this),
 			nextItem: this._nextItem.bind(this),
-			saver: this._saver,
 		});
 		var view = new ItemView(args);
 		var pathElement = new PathElement(args);
@@ -99,8 +96,10 @@ module.exports = compose(_ContentDelegate, function(args) {
 		this._next(view, pathElement, {modelId: modelId, itemId: itemId});
 	},
 	_next: function(view, pathElement, params) {
+		var key = this._stack.length+''
 		this._mainArea.content(view);
-		this._pathBar.add(this._stack.length+'', pathElement);
+		this._pathBar.add(key, pathElement);
+		this._own(view, key)
 		this._stack.push({
 			type: 'collection',
 			params: params,
@@ -112,8 +111,10 @@ module.exports = compose(_ContentDelegate, function(args) {
 		var stack = this._stack;
 		if (stack.length>1) {
 			stack.pop();
+			var key = this._stack.length+''
 			this._mainArea.content(stack[stack.length-1].main);
-			this._pathBar.remove(this._stack.length+'');
+			this._pathBar.remove(key)
+			this._destroy(key)
 		}
 	},
 });

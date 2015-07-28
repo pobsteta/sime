@@ -2,7 +2,7 @@ var when = require('when');
 var compose = require('ksf/utils/compose');
 var on = require('ksf/utils/on');
 var bindValueDestroyable = require('ksf/observable/bindValueDestroyable');
-// var PersistableValue = require('ksf/observable/PersistableValue');
+var PersistableValue = require('ksf/observable/PersistableValue');
 var Value = require('ksf/observable/Value');
 
 var _ContentDelegate = require('absolute/_ContentDelegate');
@@ -17,21 +17,6 @@ var Button = require('absolute/Button');
 
 var App = require('./ConnectionView');
 
-function PersistableValue (name, initValue) {
-	if (initValue === undefined) {
-		initValue = null;
-	}
-	var storedValue = JSON.parse(localStorage.getItem(name));
-	var value = new Value(storedValue === null ? initValue : storedValue);
-	value.onChange(function(newValue) {
-		if (newValue !== null && newValue !== undefined) {
-			localStorage.setItem(name, JSON.stringify(newValue));
-		} else {
-			localStorage.removeItem(name);
-		}
-	});
-	return value;
-}
 
 // json rpc client
 var rest = require('rest/browser');
@@ -49,8 +34,8 @@ registry.register('text/xml', {
         return opts.response.raw.responseXML;
     },
     write: function (obj, opts) {
-        return xmlSerializer.serializeToString(obj);
-    }
+      return xmlSerializer.serializeToString(obj);
+    },
 });
 
 // intercepteur pour une session utilis
@@ -61,7 +46,7 @@ function forgeRequest(request, config) {
 	request.params.push(config.preferences);
 	return {entity: request};
 }
-function  unforgeRequest (request) {
+function unforgeRequest (request) {
 	return {
 		method: request.method,
 		params: request.params.slice(2, request.params.length-1),
@@ -178,7 +163,7 @@ module.exports = compose(_ContentDelegate, function() {
 				// TODO: demander comment déterminer l'URL WFS
 				.wrap(wfsInterceptor, {
 					prefix: connectionValue.url.replace('8000', '8001') + '/model/wfs/wfs/wfs?SERVICE=WFS&VERSION=1.0.0&',
-					passwordR: passwordValue
+					passwordR: passwordValue,
 				});
 
 			var app = new App({
@@ -188,6 +173,7 @@ module.exports = compose(_ContentDelegate, function() {
 					connection.value(null);
 					session.value(null);
 				},
+				popupContainer: popupContainer,
 			});
 			appContainer.content(app);
 			return [

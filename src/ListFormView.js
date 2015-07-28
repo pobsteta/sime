@@ -1,5 +1,6 @@
 var create = require('lodash/object/create');
 var compose = require('ksf/utils/compose');
+var _Destroyable = require('ksf/base/_Destroyable');
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var Switch = require('absolute/Switch');
 var VFlex = require('absolute/VFlex');
@@ -18,14 +19,16 @@ var FormView = require('./FormView');
 	request
 }
 */
-module.exports = compose(_ContentDelegate, function(args) {
+module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	var mode = new Value('list');
-	var listView = new ListView(create(args, {
+	var listView = this._own(new ListView(create(args, {
 		onAction: toggleMode.bind(null, mode),
-	}));
+	})));
 	var formView = new VFlex([
-		[new Button().value('basculer').height(60).onAction(toggleMode.bind(null, mode)), 'fixed'],
-		new FormView(args),
+		[new Button().value('basculer').height(60).onAction(function () {
+			args.saver.ensureChangesAreSaved().then(toggleMode.bind(null, mode))
+		}), 'fixed'],
+		this._own(new FormView(args)),
 	]);
 
 	this._content = new Reactive({
