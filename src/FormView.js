@@ -2,6 +2,7 @@ var compose = require('ksf/utils/compose');
 var create = require('lodash/object/create');
 
 var _ContentDelegate = require('absolute/_ContentDelegate');
+var _Destroyable = require('ksf/base/_Destroyable');
 var Label = require('absolute/Label');
 var LabelInput = require('absolute/LabelInput');
 var MappedValue = require('ksf/observable/MappedValue');
@@ -26,23 +27,24 @@ var getFieldIdsToRequest = require('./getFieldIdsToRequest');
 	request
 }
 */
-module.exports = compose(_ContentDelegate, function(args) {
+module.exports = compose(_Destroyable, _ContentDelegate, function(args) {
 	this._args = args;
+	var self = this;
 	// load fields def early and only once
 	var fields = args.request({
-		"method":"model."+args.modelId+".fields_view_get",
-		"params":[args.formViewId || null, "form"],
+		"method": "model."+args.modelId+".fields_view_get",
+		"params": [args.formViewId || null, "form"],
 	});
 	this._content = new Margin(new VFlex([
 		new VScroll(new Reactive({
 			value: new MappedValue(args.activeItem, function(itemId) {
 				if (itemId) {
 					var container = new VPile();
-					displayForm(create(args, {
+					self.own('destroyForm', displayForm(create(args, {
 						itemId: itemId,
 						fields: fields,
 						container: container,
-					}));
+					})));
 					return container;
 				} else {
 					return new Label().value("Aucun élément sélectionné");
@@ -60,25 +62,29 @@ function displayForm (args) {
 	var message = args.message;
 	var container = args.container;
 	message.value('loading form view ...');
+	var changes = {};
+	var canceler = on(args.saver, 'save', function () {
+		message.value('enregistrement...');
+		args.request({
+			method: "model."+args.modelId+".write",
+			params: [[args.itemId], changes],
+		}).then(function() {
+			message.value("Enregistré");
+			changes = {}
+		}, function(err) {
+			message.value("Erreur lors de l'enregistrement");
+			console.log("Erreur lors de l'enregistrement", err);
+		});
+	})
 	args.fields.then(function(res) {
 		var arch = new DOMParser().parseFromString(res.arch, 'application/xml')
-		var changes = {};
 		var fieldIds = Object.keys(res.fields);
 		container.add('save', new Button().value('Enregistrer').height(60).onAction(function() {
-			message.value('enregistrement...');
-			args.request({
-				method: "model."+args.modelId+".write",
-				params: [[args.itemId], changes],
-			}).then(function() {
-				message.value("Enregistré");
-			}, function(err) {
-				message.value("Erreur lors de l'enregistrement");
-				console.log("Erreur lors de l'enregistrement", err);
-			});
+			args.saver.save()
 		}));
 		return args.request({
-			"method":"model."+args.modelId+".read",
-			"params":[[args.itemId], getFieldIdsToRequest(res.fields)],
+			"method": "model."+args.modelId+".read",
+			"params": [[args.itemId], getFieldIdsToRequest(res.fields)],
 		}).then(function(dataRes) {
 			fieldIds.forEach(function(fieldId) {
 				var propDisplayer = new HFlex([
@@ -98,6 +104,7 @@ function displayForm (args) {
 			console.log("erreur", err);
 		});
 	}).done();
+	return canceler;
 }
 
 var editFieldFactories = {

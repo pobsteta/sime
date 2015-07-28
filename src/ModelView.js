@@ -13,6 +13,7 @@ var TransformedValue = require('ksf/observable/TransformedValue');
 
 var CollectionView = require('./CollectionView');
 var ItemView = require('./ItemView');
+var Saver = require('./utils/Saver');
 
 var PathElement = compose(_ContentDelegate, function(args) {
 	var modelName;
@@ -56,6 +57,7 @@ Elle maintient l'état du 'path' de navigation
 */
 module.exports = compose(_ContentDelegate, function(args) {
 	this._args = args;
+	this._saver = new Saver();
 	this._content = new VFlex([
 		[this._pathBar = new HPile().height(30), 'fixed'],
 		this._mainArea = new Switch(),
@@ -75,6 +77,7 @@ module.exports = compose(_ContentDelegate, function(args) {
 			activeItem: new Value(),
 			nextCollection: this._nextCollection.bind(this),
 			nextItem: this._nextItem.bind(this),
+			saver: this._saver,
 		});
 		var view = new CollectionView(args);
 		var pathElement = new PathElement(args);
@@ -88,6 +91,7 @@ module.exports = compose(_ContentDelegate, function(args) {
 			activeItem: new Value(itemId),
 			nextCollection: this._nextCollection.bind(this),
 			nextItem: this._nextItem.bind(this),
+			saver: this._saver,
 		});
 		var view = new ItemView(args);
 		var pathElement = new PathElement(args);

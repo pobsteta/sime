@@ -23,10 +23,10 @@ var Value = require('ksf/observable/Value');
 module.exports = compose(_ContentDelegate, function(args) {
 	this._content = new Switch();
 
-	displayMenu(null, this._content, args.message, args.request, null, args.onDisplayModel);
+	displayMenu(null, this._content, args.message, args.request, null, args.onDisplayModel, args.saver);
 });
 
-function displayMenu (menuItemId, container, message, request, previous, onAction) {
+function displayMenu (menuItemId, container, message, request, previous, onAction, saver) {
 	message.value('loading...');
 	request({
 		"method":"model.ir.ui.menu.search",
@@ -49,25 +49,27 @@ function displayMenu (menuItemId, container, message, request, previous, onActio
 			var menuItemLabel = new Value(childMenuItemId+'');
 			var menuItem = new HFlex([
 				[new Button().width(30).value('+').onAction(function() {
-					displayMenu(childMenuItemId, container, message, request, menuPage, onAction);
+					displayMenu(childMenuItemId, container, message, request, menuPage, onAction, saver);
 				}), 'fixed'],
 				new VFlex([
 					new Reactive({
 						value: menuItemLabel,
 						content: new Button().color('transparent').value(childMenuItemId+'').onAction(function() {
 							message.value("looking for list view...");
-							request({
-								"method":"model.ir.action.keyword.get_keyword",
-								"params":[
-									"tree_open",
-									["ir.ui.menu", childMenuItemId]
-								]
+							saver.save().then(function () {
+								return request({
+									"method":"model.ir.action.keyword.get_keyword",
+									"params":[
+										"tree_open",
+										["ir.ui.menu", childMenuItemId]
+									]
+								})
 							}).then(function(res) {
 								if (res.length) {
 									message.value('');
 									var views = res[0].views;
 									var viewId;
-									var formViewId;							
+									var formViewId;
 									for (var i=0; i<views.length; i++) {
 										var view = views[i];
 										if (view[1] === 'tree') {
@@ -88,7 +90,7 @@ function displayMenu (menuItemId, container, message, request, previous, onActio
 							}).done();
 						})
 					}),
-					[new Background(new Space()).height(1).color('#eee'), 'fixed']
+					[new Background(new Space()).height(1).color('#eee'), 'fixed'],
 				]),
 			]).height(60);
 			menuContainer.add(childMenuItemId+'', menuItem);
