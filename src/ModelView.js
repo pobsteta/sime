@@ -8,6 +8,7 @@ var Background = require('absolute/Background');
 var Switch = require('absolute/Switch');
 var Label = require('absolute/Label');
 var Button = require('absolute/Button');
+var Space = require('absolute/Space');
 var Reactive = require('absolute/Reactive');
 var Value = require('ksf/observable/Value');
 var TransformedValue = require('ksf/observable/TransformedValue');
@@ -58,13 +59,12 @@ Elle maintient l'état du 'path' de navigation
 module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	this._args = args;
 	this._content = new VFlex([
-		[this._pathBar = new HPile().height(30), 'fixed'],
+		[this._pathBar = new HPile().content([new Space().width(50), new Button().value('<').width(30).onAction(this._back.bind(this))]).height(30), 'fixed'],
 		this._mainArea = new Switch(),
 	]);
 
 	this._stack = [];
 
-	this._pathBar.add('back', new Button().value('<').width(30).onAction(this._back.bind(this)));
 	this._nextCollection(args.modelId, null, args.listViewId, args.formViewId);
 }, {
 	_nextCollection: function(modelId, query, listViewId, formViewId) {
