@@ -69,7 +69,7 @@ module.exports = compose(_ContentDelegate, function(args) {
 		this._panelContainer.element.on('touchmove', ontouchmove = function(event) {
 			var deltaX = event.touches[0].pageX - prevX;
 
-			this.slidePanel(this._slideDistance - deltaX);
+			this._positionPanel(this._panelPosition + (this._panelOptions.position === 'left' ? -1 : 1) * deltaX);
 			// event.stopPropagation();
 			prevX = event.touches[0].pageX;
 		}.bind(this));
@@ -80,22 +80,26 @@ module.exports = compose(_ContentDelegate, function(args) {
 	}.bind(this));
 
 	// left-border swipe
-	var onfirsttouchmove;
+	var onfirsttouchmove,
+		swipableBorderWidth = 5;
 	document.addEventListener('touchmove', onfirsttouchmove = function(event) {
 		var elmtBBox = this._content.element.domNode.getBoundingClientRect();
 		var eventClientX = event.touches[0].clientX;
 		var eventClientY = event.touches[0].clientY;
 		if (elmtBBox.top < eventClientY && eventClientY < elmtBBox.top + this.height() &&
-				elmtBBox.left < eventClientX && eventClientX < elmtBBox.left + 5) {
-			event.stopPropagation();
+				(this._panelOptions.position === 'left') ?
+					elmtBBox.left < eventClientX && eventClientX < elmtBBox.left + swipableBorderWidth:
+					elmtBBox.left + this.width() - swipableBorderWidth < eventClientX && eventClientX < elmtBBox.left + this.width()) {
 			prevX = event.touches[0].pageX;
 
 			document.removeEventListener('touchmove', onfirsttouchmove, true);
+			event.stopPropagation();
+
 			var ontouchmove, ontouchend;
 			document.addEventListener('touchmove', ontouchmove = function(event) {
 				var deltaX = event.touches[0].pageX - prevX;
 
-				this.slidePanel(this._slideDistance - deltaX);
+				this._positionPanel(this._panelPosition + (this._panelOptions.position === 'left' ? -1 : 1) * deltaX);
 				event.stopPropagation();
 				prevX = event.touches[0].pageX;
 			}.bind(this), true);
@@ -108,14 +112,14 @@ module.exports = compose(_ContentDelegate, function(args) {
 		}
 	}.bind(this), true);
 
-
-  this._slideDistance = 0;
+	// open state
+  this._panelPosition = 0;
 }, {
   _layout: function() {
     this._hflex
-			.width(this._width + this._slideDistance);
+			.width(this._width + this._panelPosition);
 		if (this._panelOptions.position === 'left') {
-			this._hflex.left(-this._slideDistance);
+			this._hflex.left(-this._panelPosition);
 		}
   },
 
@@ -130,20 +134,16 @@ module.exports = compose(_ContentDelegate, function(args) {
     }
   },
 
-  slidePanel: function(distance) {
-    this._slideDistance = Math.max(0, Math.min(distance, this._panelOptions.maxWidth));
+  _positionPanel: function(pos) {
+    this._panelPosition = Math.max(0, Math.min(pos, this._panelOptions.maxWidth));
     this._layout();
   },
 
-  closed: function(closed) {
-    if (arguments.length) {
-      if (closed) {
-        this.slidePanel(this._panelOptions.maxWidth);
-      } else {
-        this.slidePanel(0);
-      }
-    } else {
-      return this._slideDistance === this._panelOptions.maxWidth;
-    }
+	slidePanel: function(open) {
+		this._positionPanel(open ? 0 : this._panelOptions.maxWidth);
+	},
+
+  isPanelOpen: function() {
+    return this._panelPosition === 0;
   }
 });

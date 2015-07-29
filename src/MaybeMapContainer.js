@@ -16,7 +16,7 @@ module.exports = compose(_ContentDelegate, function(args, PaneConstructor, MapCo
 
 	var paneView =  new PaneConstructor(args);
 
-	var container = this._content = new Switch().content(paneView);
+	var container = this._content = new Switch();
 
 	qgsFile.then(function(fileContent){
 		if (fileContent) {
@@ -29,6 +29,8 @@ module.exports = compose(_ContentDelegate, function(args, PaneConstructor, MapCo
 					position: 'right'
 				}
 			}));
+		} else {
+			container.content(paneView);
 		}
 	});
 });

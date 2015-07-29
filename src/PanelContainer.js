@@ -4,14 +4,14 @@ var ZPile = require('absolute/ZPile');
 var Align = require('absolute/Align');
 var Button = require('absolute/Button');
 
-var ResponsiveDuoPanel = require('./ResponsiveDuoPanel');
+var DuoPanel = require('./DuoPanelLarge');
 
 module.exports = compose(_ContentDelegate, function(args) {
-  var container = this._content = new ResponsiveDuoPanel({
+  var container = this._content = new DuoPanel({
     main: new ZPile().content([
       args.main,
       new Align(new Button().width(30).height(30).value('|||').onAction(function() {
-        container.closed(!container.closed());
+        container.slidePanel(!container.isPanelOpen());
       }), args.panelOptions.position, 'top')
     ]),
     panel: args.panel,
