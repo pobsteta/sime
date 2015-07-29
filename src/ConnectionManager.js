@@ -9,6 +9,7 @@ var _ContentDelegate = require('absolute/_ContentDelegate');
 var Align = require('absolute/Align');
 var Background = require('absolute/Background');
 var VPile = require('absolute/VPile');
+var HFlex = require('absolute/HFlex');
 var ZPile = require('absolute/ZPile');
 var Switch = require('absolute/Switch');
 var Label = require('absolute/Label');
@@ -131,6 +132,29 @@ var trytonLogin = function(connectionValue, session, password) {
 	});
 };
 
+var ConfirmDialog = compose(_ContentDelegate, function (question) {
+  var self = this
+  this._response = new Promise(function(resolve){
+    self._content = new Background(
+      new Align(new VPile().width(200).content([
+        new Label().value(question).height(30),
+        new HFlex([
+          new Button().value("OK").height(30).onAction(function() {
+            resolve(true)
+          }),
+          new Button().value("Annuler").height(30).onAction(function() {
+            resolve(false)
+          }),
+        ]),
+      ]), 'middle', 'middle')
+    ).color('lightgrey').opacity(0.8)
+  })
+}, {
+  then: function () {
+    return this._response.then.apply(this._response, arguments)
+  },
+})
+
 module.exports = compose(_ContentDelegate, function() {
 	var appContainer, popupContainer;
 	this._content = new ZPile().content([
@@ -174,6 +198,14 @@ module.exports = compose(_ContentDelegate, function() {
 					session.value(null);
 				},
 				popupContainer: popupContainer,
+        confirm: function (question) {
+          var cmp = new ConfirmDialog(question)
+          popupContainer.content(cmp)
+          return cmp.then(function (res) {
+            popupContainer.content(null)
+            return res
+          })
+        }
 			});
 			appContainer.content(app);
 			return [
