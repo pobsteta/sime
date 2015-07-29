@@ -19,7 +19,7 @@ var Background = require('absolute/Background');
 var Clickable = require('absolute/Clickable');
 
 var getFieldIdsToRequest = require('./getFieldIdsToRequest');
-
+var createFieldDisplayer = require('./fieldDisplayer')
 
 /**
 @params args {
@@ -64,7 +64,7 @@ function displayList (args) {
 		new Button().value("Ajouter un élément").height(60).onAction(function () {
 			args.activeItem.value('new')
 			if (args.onAction) {args.onAction()}
-		})
+		}),
 	])
 
 	return when.all([args.listViewDef, request({
@@ -83,7 +83,7 @@ function displayList (args) {
 				var itemView = new Background(new VPile().content(fieldIds.map(function(fieldId) {
 					return new HFlex([
 						[new Label().value(fieldsRes.fields[fieldId].string).width(150), 'fixed'],
-						displayFieldValue(item, fieldsRes.fields[fieldId]),
+						createFieldDisplayer(item, fieldsRes.fields[fieldId]),
 					]).height(30);
 				}))).color('transparent').border('1px solid');
 				// TODO : remplacer ces listeners inividuels par un listener global...
@@ -101,56 +101,4 @@ function displayList (args) {
 			console.log("erreur", err);
 		});
 	}).done();
-}
-
-var displayFieldFactories = {
-	boolean: function(item, field) {
-		return new Label().value(item[field.name] ? 'oui' : 'non'); // TODO: remplacer par le bon widget
-	},
-	integer: function(item, field) {
-		return new Label().value(item[field.name]+'');
-	},
-	biginteger: function(item, field) {
-		return new Label().value(item[field.name]+'');
-	},
-	char: function(item, field) {
-		return new Label().value(item[field.name]);
-	},
-	text: function(item, field) {
-		return new Label().value(item[field.name]);
-	},
-	float: function(item, field) {
-		return new Label().value(item[field.name]+'');
-	},
-	numeric: function(item, field) {
-		return new Label().value(item[field.name]+'');
-	},
-	date: function(item, field) {
-		return new Label().value(item[field.name]);
-	},
-	datetime: function(item, field) {
-		return new Label().value(item[field.name]);
-	},
-	time: function(item, field) {
-		return new Label().value(item[field.name]);
-	},
-	// selection
-	// reference
-	many2one: function(item, field) {
-		return new Label().value(item[field.name+'.rec_name']);
-	},
-	one2many: function(item, field) {
-		return new Label().value('( ' + item[field.name].length + ' )');
-	},
-	many2many: function(item, field) {
-		return new Label().value('( ' + item[field.name].length + ' )');
-	},
-	// function
-	// property
-};
-function displayFieldValue (item, field) {
-	if (field.type in displayFieldFactories) {
-		return displayFieldFactories[field.type](item, field);
-	}
-	return new Label().value(JSON.stringify(item[field.name]));
 }
