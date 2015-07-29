@@ -23,7 +23,7 @@ var PathElement = compose(_ContentDelegate, function(args) {
 		new Reactive({
 			value: new TransformedValue(args.activeItem, function(itemId) {
 				var itemName = this;
-				if (itemId) {
+				if (itemId && itemId !== 'new') {
 					itemName.value(itemId+''); // initialise avec l'id
 					args.request({ method: "model."+args.modelId+".read", params: [
 						[itemId],

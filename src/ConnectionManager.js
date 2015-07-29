@@ -136,17 +136,17 @@ var ConfirmDialog = compose(_ContentDelegate, function (question) {
   var self = this
   this._response = new Promise(function(resolve){
     self._content = new Background(
-      new Align(new VPile().width(200).content([
+      new Align(new VPile().content([
         new Label().value(question).height(30),
         new HFlex([
-          new Button().value("OK").height(30).onAction(function() {
+          new Button().value("OK").onAction(function() {
             resolve(true)
           }),
-          new Button().value("Annuler").height(30).onAction(function() {
+          new Button().value("Annuler").onAction(function() {
             resolve(false)
           }),
-        ]),
-      ]), 'middle', 'middle')
+        ]).height(60),
+      ]).width(200), 'middle', 'middle')
     ).color('lightgrey').opacity(0.8)
   })
 }, {

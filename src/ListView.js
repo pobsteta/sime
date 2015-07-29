@@ -4,9 +4,12 @@ var create = require('lodash/object/create');
 
 var compose = require('ksf/utils/compose');
 var bindValue = require('ksf/observable/bindValue');
+var on = require('ksf/utils/on')
 
 var _ContentDelegate = require('absolute/_ContentDelegate');
+var _Destroyable = require('ksf/base/_Destroyable');
 var Label = require('absolute/Label');
+var Button = require('absolute/Button');
 var VFlex = require('absolute/VFlex');
 var HFlex = require('absolute/HFlex');
 var VPile = require('absolute/VPile');
@@ -25,28 +28,46 @@ var getFieldIdsToRequest = require('./getFieldIdsToRequest');
 	request
 }
 */
-module.exports = compose(_ContentDelegate, function(args) {
+module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	this._args = args;
 	var container = new VPile();
+	var listArgs = create(args, {
+		container: container,
+		listViewDef: args.request({
+			"method": "model."+args.modelId+".fields_view_get",
+			"params": [args.listViewId || null, "tree"],
+		}),
+	})
 	this._content = new Margin(new VFlex([
 		new VScroll(container),
 	]), 10);
 
-	displayList(create(args, {
-		container: container,
-	}));
+	displayList(listArgs);
+	var refreshList = function () {
+		container.content([])
+		displayList(listArgs)
+	}
+	this._own(on(args.saver, 'itemDestroyed', refreshList))
+	this._own(on(args.saver, 'itemCreated', refreshList))
+	this._own(on(args.saver, 'attrsChanged', refreshList))
 });
 
 function displayList (args) {
 	var message = args.message;
-	message.value('loading...');
 	var query = args.query || [];
 	var modelId = args.modelId;
 	var request = args.request;
-	return when.all([request({
-		"method":"model."+modelId+".fields_view_get",
-		"params":[args.listViewId || null, "tree"],
-	}), request({
+
+	message.value('loading...');
+
+	args.container.content([
+		new Button().value("Ajouter un élément").height(60).onAction(function () {
+			args.activeItem.value('new')
+			if (args.onAction) {args.onAction()}
+		})
+	])
+
+	return when.all([args.listViewDef, request({
 		"method":"model."+modelId+".search",
 		"params":[query, 0, 10, null],
 	})]).then(function(res) {
@@ -71,7 +92,7 @@ function displayList (args) {
 				});
 				args.container.add(itemId, new Clickable(itemView).onAction(function() {
 					args.activeItem.value(itemId);
-					args.onAction && args.onAction(itemId);
+					if (args.onAction) {args.onAction(itemId)}
 				}).height(fieldIds.length*30));
 			});
 			message.value('loaded');
@@ -133,4 +154,3 @@ function displayFieldValue (item, field) {
 	}
 	return new Label().value(JSON.stringify(item[field.name]));
 }
-

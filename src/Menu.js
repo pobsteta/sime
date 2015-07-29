@@ -43,7 +43,7 @@ function displayMenu (args) {
 				[new Button().width(30).value('+').onAction(function() {
 					displayMenu(create(args, {
 						menuItemId: childMenuItemId,
-						//container: menuPage,
+						previous: menuPage,
 					}));
 				}), 'fixed'],
 				new VFlex([
@@ -58,31 +58,33 @@ function displayMenu (args) {
 										"tree_open",
 										["ir.ui.menu", childMenuItemId],
 									],
-								})
-							}).then(function(res) {
-								if (res.length) {
-									message.value('');
-									var views = res[0].views;
-									var viewId;
-									var formViewId;
-									for (var i=0; i<views.length; i++) {
-										var view = views[i];
-										if (view[1] === 'tree') {
-											viewId = view[0];
+								}).then(function(res) {
+									if (res.length) {
+										message.value('');
+										var views = res[0].views;
+										var viewId;
+										var formViewId;
+										for (var i=0; i<views.length; i++) {
+											var view = views[i];
+											if (view[1] === 'tree') {
+												viewId = view[0];
+											}
+											if (view[1] === 'form') {
+												formViewId = view[0];
+											}
 										}
-										if (view[1] === 'form') {
-											formViewId = view[0];
-										}
+										var modelId = res[0]["res_model"];
+										args.onDisplayModel(modelId, viewId, formViewId);
+									} else {
+										message.value('no list view');
 									}
-									var modelId = res[0]["res_model"];
-									args.onDisplayModel(modelId, viewId, formViewId);
-								} else {
-									message.value('no list view');
-								}
-								message.value("error");
-							}, function(err) {
-								console.log("erreur lors de la recherche d'une vue de type liste pour le menu", childMenuItemId, err);
-							});
+									message.value("error");
+								}, function(err) {
+									console.log("erreur lors de la recherche d'une vue de type liste pour le menu", childMenuItemId, err);
+								})
+							}, function () {
+								// il y a eu une erreur lors de l'enregistrement des données, on ne change pas de page
+							})
 						}),
 					}),
 					[new Background(new Space()).height(1).color('#eee'), 'fixed'],
