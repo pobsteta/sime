@@ -26,8 +26,8 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args, PaneCons
 					qgsFile: fileContent,
 				}))),
 				panel: paneView,
-				panelOptions: {
-					position: 'right',
+				options: {
+					panelPosition: 'right',
 				},
 			}));
 		} else {

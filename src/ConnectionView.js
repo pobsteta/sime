@@ -45,9 +45,8 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 				})).width(300),
 				[message.height(30), 'fixed'],
 			]),
-		panelOptions: {
-			position: 'left',
-			maxWidth: 300,
+		options: {
+			panelPosition: 'left',
 		},
 		main: mainArea.depth(100),
 	});
