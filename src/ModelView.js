@@ -59,7 +59,10 @@ Elle maintient l'état du 'path' de navigation
 module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	this._args = args;
 	this._content = new VFlex([
-		[this._pathBar = new HPile().content([new Space().width(50), new Button().value('<').width(30).onAction(this._back.bind(this))]).height(30), 'fixed'],
+		[this._pathBar = new HPile().content([
+			new Space().width(50),
+			new Button().value('<').width(30).onAction(this._back.bind(this))
+		]).height(30), 'fixed'],
 		this._mainArea = new Switch(),
 	]);
 
@@ -96,7 +99,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 		this._next(view, pathElement, {modelId: modelId, itemId: itemId});
 	},
 	_next: function(view, pathElement, params) {
-		var key = this._stack.length+''
+		var key = 'item' + this._stack.length
 		this._mainArea.content(view);
 		this._pathBar.add(key, pathElement);
 		this._own(view, key)
@@ -113,7 +116,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 		var stack = this._stack;
 		if (stack.length>1) {
 			stack.pop();
-			var key = this._stack.length+''
+			var key = 'item' + this._stack.length
 			this._mainArea.content(stack[stack.length-1].main);
 			this._pathBar.remove(key)
 			this._destroy(key)
