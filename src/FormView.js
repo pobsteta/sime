@@ -68,7 +68,11 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 		]).height(60), 'fixed'],
 	])
 
-	this._own(on(args.saver, 'save', this._save.bind(this)))
+	this._own(on(args.saver, 'save', function () {
+		if (args.changes.modelId === args.modelId) {
+			return self._save()
+		}
+	}))
 	this._own(on(args.saver, 'cancel', this._cancel.bind(this)))
 }, {
 	_save: function () {
@@ -108,6 +112,7 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 
 
 var ItemCreator = compose(_ContentDelegate, _Destroyable, function (args) {
+	var self = this
 	this._args = args
 	var formContainer = new Switch()
 	args.viewDef.then(function (viewDef) {
@@ -130,7 +135,9 @@ var ItemCreator = compose(_ContentDelegate, _Destroyable, function (args) {
 	this._content = new VFlex([
 		new VScroll(formContainer),
 		[new HFlex([
-			new Button().value("Créer").onAction(this._save.bind(this)),
+			new Button().value("Créer").onAction(function () {
+				self._save().catch(function() {}) // done() n'existe pas
+			}),
 			new Button().value("Annuler").onAction(function () {
 				args.changes.attrs = {}
 				args.activeItem.value(null)
@@ -138,7 +145,11 @@ var ItemCreator = compose(_ContentDelegate, _Destroyable, function (args) {
 		]).height(60), 'fixed'],
 	])
 
-	this._own(on(args.saver, 'save', this._save.bind(this)))
+	this._own(on(args.saver, 'save', function () {
+		if (args.changes.modelId === args.modelId) {
+			return self._save()
+		}
+	}))
 }, {
 	_save: function () {
 		var args = this._args
@@ -150,7 +161,7 @@ var ItemCreator = compose(_ContentDelegate, _Destroyable, function (args) {
 			args.activeItem.value(res[0])
 		}, function (err) {
 			args.message.value(JSON.stringify(err))
-			return new Error(err)
+			throw new Error(err)
 		})
 	},
 })

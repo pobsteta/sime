@@ -106,6 +106,8 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 			main: view,
 			pathElement: pathElement,
 		});
+		// update changes.modelId
+		this._args.changes.modelId = params.modelId
 	},
 	_back: function() {
 		var stack = this._stack;
@@ -115,6 +117,8 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 			this._mainArea.content(stack[stack.length-1].main);
 			this._pathBar.remove(key)
 			this._destroy(key)
+			// update changes.modelId
+			this._args.changes.modelId = stack[stack.length-1].params.modelId
 		}
 	},
 });

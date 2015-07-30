@@ -32,7 +32,7 @@ function displayMenu (args) {
 		var menuContainer = new VPile();
 		var menuPage = new Margin(new VScroll(menuContainer), 10);
 		args.container.content(menuPage);
-		if (menuItemId !== null) {
+		if (menuItemId) {
 			menuContainer.add('back', new Button().value('<-').height(60).onAction(function() {
 				args.container.content(args.previous);
 			}));

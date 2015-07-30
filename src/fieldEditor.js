@@ -95,6 +95,11 @@ var editFieldFactories = {
 	one2many: function(args) {
 		var field = args.field;
 		var item = args.itemValue;
+
+		if (!item[field.name]) {
+			return new Label().value("( 0 )")
+		}
+
 		return new Button().value('( ' + item[field.name].length + ' )').onAction(function() {
 			var modelId = field.relation;
 			var query = [field['relation_field'], '=', item.id];
@@ -103,8 +108,22 @@ var editFieldFactories = {
 			args.nextCollection(modelId, query, viewsByType.tree, viewsByType.form);
 		});
 	},
+	// pour l'instant c'est du copier/coller de one2many
 	many2many: function(args) {
-		return new Label().value('( ' + args.itemValue[args.field.name].length + ' )');
+		var field = args.field;
+		var item = args.itemValue;
+
+		if (!item[field.name]) {
+			return new Label().value("( 0 )")
+		}
+
+		return new Button().value('( ' + item[field.name].length + ' )').onAction(function() {
+			var modelId = field.relation;
+			var query = [field['relation_field'], '=', item.id];
+
+			var viewsByType = getViewsByType(args.arch, field.name)
+			args.nextCollection(modelId, query, viewsByType.tree, viewsByType.form);
+		});
 	},
 	// selection
 	// reference

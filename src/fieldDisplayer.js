@@ -37,9 +37,15 @@ var displayFieldFactories = {
 		return new Label().value(item[field.name+'.rec_name']);
 	},
 	one2many: function(item, field) {
+		if (!item[field.name]) {
+			return new Label().value("( 0 )")
+		}
 		return new Label().value('( ' + item[field.name].length + ' )');
 	},
 	many2many: function(item, field) {
+		if (!item[field.name]) {
+			return new Label().value("( 0 )")
+		}
 		return new Label().value('( ' + item[field.name].length + ' )');
 	},
 	// function
