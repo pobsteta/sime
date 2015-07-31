@@ -52,7 +52,11 @@ module.exports = compose(_ContentDelegate, function(args) {
   this._options = assign({
     panelWidth: 400,
     panelPosition: 'left',
+		panelOpen: false,
   }, args.options);
+
+	// initial state
+  this._panelSlideX = this._options.panelOpen ? 0 : this._options.panelWidth;
 
 	var flexArg = [this._main],
 		panel = [this._panelContainer = new ParentContainer().content(this._panel.width(this._options.panelWidth).left(0)).width(this._options.panelWidth), 'fixed'];
@@ -85,8 +89,6 @@ module.exports = compose(_ContentDelegate, function(args) {
 		}.bind(this));
 	}.bind(this));
 */
-	// open state
-  this._panelSlideX = 0;
 }, {
 	_layout: function() {
     this._hflex

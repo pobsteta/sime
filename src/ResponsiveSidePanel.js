@@ -13,11 +13,16 @@ module.exports = compose(_ContentDelegate, function(args) {
     smallMargin: 30,
     panelMaxWidth: 330,
     panelPosition: 'left',
+    panelOpen: false
   }, args.options);
 
   this._content = new Switch();
 }, {
   _layout: function() {
+    var panelOpen = this._options.panelOpen;
+    if (this._layouter) {
+      panelOpen = this._layouter.isPanelOpen();
+    }
     if (this._mode === 'large') {
       this._content.content(this._layouter = new SidePanelLarge({
         main: this._args.main,
@@ -25,6 +30,7 @@ module.exports = compose(_ContentDelegate, function(args) {
         options: {
           panelPosition: this._options.panelPosition,
           panelWidth: this._options.panelMaxWidth,
+          panelOpen: panelOpen,
         },
       }));
     } else {
@@ -34,6 +40,7 @@ module.exports = compose(_ContentDelegate, function(args) {
         options: {
           panelPosition: this._options.panelPosition,
           sideMargin: this._options.smallMargin,
+          panelOpen: panelOpen,
         },
       }));
     }
@@ -48,10 +55,14 @@ module.exports = compose(_ContentDelegate, function(args) {
       } else {
         mode = 'narrow';
       }
-			this._content.width(width);
       if (mode !== this._mode) {
+        // prevent changing width of content twice
+        this._content.content(null);
+  			this._content.width(width);
         this._mode = mode;
         this._layout();
+      } else {
+        this._content.width(width);
       }
       return this;
     } else {

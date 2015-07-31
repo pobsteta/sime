@@ -48,6 +48,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 			]),
 		options: {
 			panelPosition: 'left',
+			panelOpen: true
 		},
 		main: mainArea.depth(100),
 	});
