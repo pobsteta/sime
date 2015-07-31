@@ -1,10 +1,11 @@
 var compose = require('ksf/utils/compose');
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var VScroll = require('absolute/VScroll');
-var VFlex = require('absolute/VFlex');
 var HFlex = require('absolute/HFlex');
 var Label = require('absolute/Label');
 var LabelInput = require('absolute/LabelInput');
+var BooleanInput = require('absolute/InputElementBoolean');
+var NumberInput = require('absolute/InputElementNumber');
 var Background = require('absolute/Background');
 var Clickable = require('absolute/Clickable');
 var Button = require('absolute/Button');
@@ -49,27 +50,60 @@ var ChoiceList = compose(_ContentDelegate, function (args) {
 
 var editFieldFactories = {
 	boolean: function(args) {
-		return new Label().value(args.itemValue[args.field.name] ? 'oui' : 'non'); // TODO: remplacer par le bon widget
+		return new BooleanInput()
+			.value(args.itemValue[args.field.name])
+			.prop('disabled', args.field.readonly)
+			.onInput(function (newValue) {
+				args.changes.attrs[args.field.name] = newValue;
+			})
 	},
 	integer: function(args) {
-		return new Label().value(args.itemValue[args.field.name]+'');
+		return new NumberInput()
+			.value(args.itemValue[args.field.name])
+			.prop('disabled', args.field.readonly)
+			.onInput(function (newValue) {
+				args.changes.attrs[args.field.name] = newValue;
+			})
 	},
 	biginteger: function(args) {
-		return new Label().value(args.itemValue[args.field.name]+'');
+		return new NumberInput()
+			.value(args.itemValue[args.field.name])
+			.prop('disabled', args.field.readonly)
+			.onInput(function (newValue) {
+				args.changes.attrs[args.field.name] = newValue;
+			})
 	},
 	char: function(args) {
-		return new LabelInput().value(args.itemValue[args.field.name]).onInput(function(newValue) {
-			args.changes.attrs[args.field.name] = newValue;
-		});
+		return new LabelInput()
+			.value(args.itemValue[args.field.name])
+			.disabled(args.field.readonly)
+			.onInput(function(newValue) {
+				args.changes.attrs[args.field.name] = newValue;
+			});
 	},
 	text: function(args) {
-		return new Label().value(args.itemValue[args.field.name]);
+		return new LabelInput()
+			.value(args.itemValue[args.field.name])
+			.disabled(args.field.readonly)
+			.onInput(function(newValue) {
+				args.changes.attrs[args.field.name] = newValue;
+			});
 	},
 	float: function(args) {
-		return new Label().value(args.itemValue[args.field.name]+'');
+		return new NumberInput()
+			.value(args.itemValue[args.field.name])
+			.prop('disabled', args.field.readonly)
+			.onInput(function (newValue) {
+				args.changes.attrs[args.field.name] = newValue;
+			})
 	},
 	numeric: function(args) {
-		return new Label().value(args.itemValue[args.field.name]+'');
+		return new NumberInput()
+			.value(args.itemValue[args.field.name])
+			.prop('disabled', args.field.readonly)
+			.onInput(function (newValue) {
+				args.changes.attrs[args.field.name] = newValue;
+			})
 	},
 	date: function(args) {
 		return new Label().value(args.itemValue[args.field.name]);
@@ -87,30 +121,35 @@ var editFieldFactories = {
 		var itemId = item[field.name];
 		var selectButton
 		return new HFlex([
-			selectButton = new Button().value(item[field.name+'.rec_name']).onAction(function() {
-				var currentValue = args.changes.attrs[field.name] || itemId
-				args.modal(new VPile().content([
-					new ChoiceList({
-						modelId: modelId,
-						activeItem: currentValue,
-						onInput: function (newItemId, recName) {
-							args.changes.attrs[field.name] = newItemId
-							selectButton.value(recName)
-							args.modal(null)
-						},
-						request: args.request,
-					}).height(500),
-					new Button().value("Annuler").onAction(function () {
-						args.modal(null)
-					}).height(60),
-				]).width(200))
-			}),
+			selectButton = new Button()
+				.value(item[field.name+'.rec_name'])
+				.onAction(field.readonly ?
+					function(){} :
+					function() {
+						var currentValue = args.changes.attrs[field.name] || itemId
+						args.modal(new VPile().content([
+							new ChoiceList({
+								modelId: modelId,
+								activeItem: currentValue,
+								onInput: function (newItemId, recName) {
+									args.changes.attrs[field.name] = newItemId
+									selectButton.value(recName)
+									args.modal(null)
+								},
+								request: args.request,
+							}).height(500),
+							new Button().value("Annuler").onAction(function () {
+								args.modal(null)
+							}).height(60),
+						]).width(200))
+					}
+			),
 			[new Button().value(">").onAction(function () {
 				args.saver.ensureChangesAreSaved().then(function () {
 					var viewsByType = getViewsByType(args.arch, field.name)
 					args.nextItem(modelId, itemId, viewsByType.form);
 				})
-			}).width('60'), 'fixed'],
+			}).width(args.defaultButtonSize), 'fixed'],
 		])
 	},
 	one2many: function(args) {

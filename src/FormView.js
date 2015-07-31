@@ -33,7 +33,7 @@ var ItemValueEditor = compose(_ContentDelegate, function (args) {
 		var fieldIds = getFieldsFromView(arch);
 		fieldIds.forEach(function(fieldId) {
 			var field = viewDef.fields[fieldId]
-			var fieldWidget = field.readonly ? createFieldDisplayer(args.itemValue, field) : createFieldEditor(create(args, {
+			var fieldWidget = createFieldEditor(create(args, {
 				field: field,
 				arch: arch,
 			}))
