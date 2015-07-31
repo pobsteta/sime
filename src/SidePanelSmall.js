@@ -5,6 +5,7 @@ var HPile = require('absolute/HPile');
 var delegateGetSet = require('absolute/utils/delegateGetSet');
 var Full = require('absolute/layout/Full');
 var Elmt = require('absolute/Element');
+var assign = require('lodash/object/assign');
 
 var Anim = require('ksf/dom/Animator');
 var easeOutQuint = function (t) { return 1+(--t)*t*t*t*t; };
@@ -50,10 +51,13 @@ var ParentContainer = compose(function() {
 module.exports = compose(_ContentDelegate, function(args) {
   this._panel = args.panel;
   this._main = args.main;
-  this._options = {
-    sideMargin: args.options && args.options.sideMargin || 50,
-    panelPosition: args.options && args.options.panelPosition || 'left',
-  };
+  this._options = assign({
+    sideMargin: 50,
+    panelPosition: 'left',
+		panelOpen: false,
+  }, args.options);
+
+	this._panelSlideX = this._options.panelOpen ? 100 : 0;
 
 	this._panelContainer = new ParentContainer().content(this._panel.width(this._options.maxWidth).left(0));
 
@@ -80,16 +84,19 @@ module.exports = compose(_ContentDelegate, function(args) {
 		}.bind(this));
 	}.bind(this));
 */
-
-	// open state
-  this._panelSlideX = 0;
 }, {
+	_panelWidth: function() {
+		return this._width - this._options.sideMargin;
+	},
   _layout: function() {
+		var panelWidth = this._panelWidth(),
+			left;
 		if (this._options.panelPosition === 'left') {
-			this._container.left(- this._panelSlideX);
+			left = this._panelSlideX / 100 * panelWidth - panelWidth;
 		} else {
-			this._container.left(this._panelSlideX - (this._width - this._options.sideMargin));
+			left = - this._panelSlideX / 100 * panelWidth;
 		}
+		this._container.left(Math.round(left));
   },
 
   width: function(width) {
@@ -130,10 +137,10 @@ module.exports = compose(_ContentDelegate, function(args) {
 	},
 
 	slidePanel: function(open) {
-		this._animSlide(open ? 0 : this._width - this._options.sideMargin);
+		this._animSlide(open ? 100 : 0);
 	},
 
   isPanelOpen: function() {
-    return this._panelSlideX === 0;
+    return this._panelSlideX === 100;
   }
 });
