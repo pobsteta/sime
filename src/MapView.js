@@ -1,6 +1,7 @@
 var compose = require('ksf/utils/compose');
 var _Destroyable = require('ksf/base/_Destroyable');
 var _ContentDelegate = require('absolute/_ContentDelegate');
+var on = require('ksf/utils/on');
 var Button = require('absolute/Button');
 
 var ol = require('openlayers');
@@ -29,7 +30,7 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 			this._editBtn = new Button().value("Editer la géométrie").onAction(this._toggleEdit.bind(this)).width(100).visible(false),
 			this._addPartBtn = new Button().value("Ajouter une partie").onAction(this._addGeomPart.bind(this)).width(100).visible(false),
 			this._removePartBtn = new Button().value("Supprimer une partie").onAction(this._removeGeomPart.bind(this)).width(100).visible(false),
-			this._saveBtn = new Button().value("Enregistrer").onAction(this._validateGeom.bind(this)).width(100).visible(false),
+			this._saveBtn = new Button().value("Enregistrer").onAction(this._saveGeom.bind(this)).width(100).visible(false),
 		])
 	]);
 
@@ -139,6 +140,9 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 
 	this._own(args.activeItem.onChange(this._setActiveId.bind(this)));
 	this._wfsSource.on('addfeature', this._refreshActiveHighlighting.bind(this));
+
+	this._own(on(args.saver, 'save', this._saveGeom.bind(this)))
+	this._own(on(args.saver, 'cancel', this._disableEditMode.bind(this)))
 }, {
 	_setActiveId: function(id) {
 		if (id) {
@@ -165,6 +169,7 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 		}
 	},
 	_enableEditMode: function() {
+		this._args.changes.geom = true
 		this._itemSelectTool.getFeatures().clear();
 		this.olMap.removeInteraction(this._itemSelectTool);
 
@@ -238,6 +243,7 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 		this._saveBtn.value("Enregistrer");
 
 		this._editMode = false;
+		this._args.changes.geom = false
 		this._editBtn.value("Editer la géométrie");
 	},
 	_getActiveFeature: function() {
@@ -303,7 +309,7 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 		this._editingSource.removeFeature(this._partSelectTool.getFeatures().item(0));
 		this._partSelectTool.getFeatures().clear();
 	},
-	_validateGeom: function() {
+	_saveGeom: function() {
 		var geomParts = this._editingSource.getFeatures(),
 			geom = null;
 
