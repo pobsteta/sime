@@ -7,63 +7,8 @@ var Full = require('absolute/layout/Full');
 var Elmt = require('absolute/Element');
 var assign = require('lodash/object/assign');
 
+var Anim = require('ksf/dom/Animator');
 var easeOutQuint = function (t) { return 1+(--t)*t*t*t*t; };
-
-var Anim = function(description) {
-		var timeCursor = 0,
-				lastEnd;
-		this._desc = description.map(function(desc) {
-				desc.startTime = timeCursor;
-				timeCursor += desc.duration;
-				desc.endTime = timeCursor;
-				if (desc.start === undefined) {
-						desc.start = lastEnd;
-				}
-				lastEnd = desc.end;
-				return desc;
-		});
-		this._totalDuration = timeCursor;
-};
-Anim.prototype = {
-		init: function(initTimestamp) {
-				this._initTime = initTimestamp;
-		},
-		_getValue: function(t) {
-				var value;
-				this._desc.some(function(animDesc) {
-						if (animDesc.endTime >= t) {
-								var animT = (t - animDesc.startTime) / animDesc.duration;
-								value = animDesc.start + animDesc.easing(animT) * (animDesc.end - animDesc.start);
-								return true;
-						}
-				});
-				this._lastValue = value;
-				return value;
-		},
-		lastValue: function() {
-				return this._lastValue;
-		},
-		render: function(renderFrame, endCallback) {
-				var t = Date.now() - this._initTime;
-				if (t > this._totalDuration) {
-						t = this._totalDuration;
-				}
-				renderFrame(this._getValue(t));
-				if (!this._cancelled) {
-						if (t !== this._totalDuration) {
-								var self = this;
-								requestAnimationFrame(function() {
-										self.render(renderFrame, endCallback);
-								});
-						} else {
-								endCallback && endCallback();
-						}
-				}
-		},
-		cancel: function() {
-				this._cancelled = true;
-		}
-};
 
 var ParentContainer = compose(function() {
 	this.element = this._container = new Elmt().style({
@@ -118,7 +63,7 @@ module.exports = compose(_ContentDelegate, function(args) {
 	}
 
   this._content = new ParentContainer().content(this._hflex = new HFlex(flexArg).left(0));
-
+/*
 	var prevX;
 	this._panelContainer.element.on('touchstart', function(event) {
 		prevX = event.touches[0].pageX;
@@ -139,7 +84,7 @@ module.exports = compose(_ContentDelegate, function(args) {
 			this._panelContainer.element.off('touchend', ontouchend);
 		}.bind(this));
 	}.bind(this));
-
+*/
 	// open state
   this._panelSlideX = 0;
 }, {

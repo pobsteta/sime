@@ -29,7 +29,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	commonArgs.saver = new Saver(commonArgs)
 	var mainArea = new Switch();
 	var message = new Label();
-	this._content = new SidePanelContainer({
+	var panelContainer = this._content = new SidePanelContainer({
 		panel: new VFlex([
 				[new Button().value("logout").onAction(args.logout).height(30), 'fixed'],
 				this._menu = new Menu(create(commonArgs, {
@@ -40,6 +40,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 							formViewId: formViewId,
 							message: message,
 						})), 'mainView'));
+						panelContainer.focusArea('main');
 					},
 					message: message,
 				})).width(300),

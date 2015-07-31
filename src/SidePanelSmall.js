@@ -6,6 +6,9 @@ var delegateGetSet = require('absolute/utils/delegateGetSet');
 var Full = require('absolute/layout/Full');
 var Elmt = require('absolute/Element');
 
+var Anim = require('ksf/dom/Animator');
+var easeOutQuint = function (t) { return 1+(--t)*t*t*t*t; };
+
 var ParentContainer = compose(function() {
 	this.element = this._container = new Elmt().style({
 		transform: 'translateZ(0)',
@@ -66,7 +69,7 @@ module.exports = compose(_ContentDelegate, function(args) {
 		this._panelContainer.element.on('touchmove', ontouchmove = function(event) {
 			var deltaX = event.touches[0].pageX - prevX;
 
-			this._positionPanel(this._panelPosition + (this._options.panelPosition === 'left' ? -1 : 1) * deltaX);
+			this._positionPanel(this._panelSlideX + (this._options.panelPosition === 'left' ? -1 : 1) * deltaX);
 			event.stopPropagation();
 			event.preventDefault();
 			prevX = event.touches[0].pageX;
@@ -79,13 +82,13 @@ module.exports = compose(_ContentDelegate, function(args) {
 */
 
 	// open state
-  this._panelPosition = 0;
+  this._panelSlideX = 0;
 }, {
   _layout: function() {
 		if (this._options.panelPosition === 'left') {
-			this._container.left(- this._panelPosition);
+			this._container.left(- this._panelSlideX);
 		} else {
-			this._container.left(this._panelPosition - (this._width - this._options.sideMargin));
+			this._container.left(this._panelSlideX - (this._width - this._options.sideMargin));
 		}
   },
 
@@ -111,15 +114,26 @@ module.exports = compose(_ContentDelegate, function(args) {
   },
 
   _positionPanel: function(pos) {
-    this._panelPosition = Math.max(0, Math.min(pos, this._width - this._options.sideMargin));
+    this._panelSlideX = Math.max(0, Math.min(pos, this._width - this._options.sideMargin));
     this._layout();
   },
 
+	_animSlide: function(endPos) {
+		var anim = new Anim([{
+				start: this._panelSlideX, end: endPos, duration: 500, easing: easeOutQuint
+		}]);
+		anim.init(Date.now());
+		anim.render(function(pos) {
+				this._panelSlideX = pos;
+				this._layout();
+		}.bind(this));
+	},
+
 	slidePanel: function(open) {
-		this._positionPanel(open ? 0 : this._width - this._options.sideMargin);
+		this._animSlide(open ? 0 : this._width - this._options.sideMargin);
 	},
 
   isPanelOpen: function() {
-    return this._panelPosition === 0;
+    return this._panelSlideX === 0;
   }
 });

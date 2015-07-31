@@ -17,4 +17,8 @@ module.exports = compose(_ContentDelegate, function(args) {
     panel: args.panel,
     options: args.options
   });
+}, {
+  focusArea: function(areaId) {
+    this._content.slidePanel(areaId === 'panel');
+  }
 });
