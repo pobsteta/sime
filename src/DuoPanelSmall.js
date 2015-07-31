@@ -1,140 +1,92 @@
 var compose = require('ksf/utils/compose');
 var _ContentDelegate = require('absolute/_ContentDelegate');
-var HPile = require('absolute/HPile');
+var HFlex = require('absolute/HFlex');
+var Switch = require('absolute/Switch');
 
-var delegateGetSet = require('absolute/utils/delegateGetSet');
-var Full = require('absolute/layout/Full');
-var Elmt = require('absolute/Element');
+var easeOutQuint = function (t) { return 1+(--t)*t*t*t*t; };
 
-var ParentContainer = compose(function() {
-	this.element = this._container = new Elmt().style({
-		transform: 'translateZ(0)',
-		overflow: 'hidden'
-	});
+var Anim = function(description) {
+		var timeCursor = 0,
+				lastEnd;
+		this._desc = description.map(function(desc) {
+				desc.startTime = timeCursor;
+				timeCursor += desc.duration;
+				desc.endTime = timeCursor;
+				if (desc.start === undefined) {
+						desc.start = lastEnd;
+				}
+				lastEnd = desc.end;
+				return desc;
+		});
+		this._totalDuration = timeCursor;
+};
+Anim.prototype = {
+		init: function(initTimestamp) {
+				this._initTime = initTimestamp;
+		},
+		_getValue: function(t) {
+				var value;
+				this._desc.some(function(animDesc) {
+						if (animDesc.endTime >= t) {
+								var animT = (t - animDesc.startTime) / animDesc.duration;
+								value = animDesc.start + animDesc.easing(animT) * (animDesc.end - animDesc.start);
+								return true;
+						}
+				});
+				this._lastValue = value;
+				return value;
+		},
+		lastValue: function() {
+				return this._lastValue;
+		},
+		render: function(renderFrame, endCallback) {
+				var t = Date.now() - this._initTime;
+				if (t > this._totalDuration) {
+						t = this._totalDuration;
+				}
+				renderFrame(this._getValue(t));
+				if (!this._cancelled) {
+						if (t !== this._totalDuration) {
+								var self = this;
+								requestAnimationFrame(function() {
+										self.render(renderFrame, endCallback);
+								});
+						} else {
+								endCallback && endCallback();
+						}
+				}
+		},
+		cancel: function() {
+				this._cancelled = true;
+		}
+};
 
-	this._hLayout = new Full('horizontal').content([this._container]);
-	this._vLayout = new Full('vertical').content([this._container]);
+module.exports = compose(_ContentDelegate, function(panels) {
+	this._panels = panels;
+  this._content = new Switch();
+
+	// show first panel
+  this._separatorPos = 100;
 }, {
-	content: function(content) {
-		if (arguments.length) {
-			if (this._content) {
-				this._content.parentNode(null);
-				this._vLayout.remove('content');
-				this._hLayout.remove('content');
-				this._content = null;
-			}
-			if (content) {
-				this._content = content.parentNode(this._container.domNode).containerVisible(true).top(0).zIndex(0);
-				this._vLayout.add('content', content);
-				this._hLayout.add('content', content);
-			}
+	_layout: function() {
+		var contentArg;
+		if (this._separatorPos === 0) {
+			contentArg = this._panels[1];
+		} else if (this._separatorPos === 100) {
+			contentArg = this._panels[0];
 		} else {
-			return this._content;
+	    contentArg = new HFlex([
+				[this._panels[0].width(Math.round(this.width() * this._separatorPos / 100)), 'fixed'],
+				this._panels[1]
+			]);
 		}
-		return this;
-	},
-	parentNode: delegateGetSet('_container', 'parentNode'),
-	left: delegateGetSet('_container', 'left'),
-	top: delegateGetSet('_container', 'top'),
-	zIndex: delegateGetSet('_container', 'zIndex'),
-	width: delegateGetSet('_hLayout', 'size'),
-	height: delegateGetSet('_vLayout', 'size'),
-	depth: delegateGetSet('_container', 'depth'),
-	visible: delegateGetSet('_container', 'visible'),
-	containerVisible: delegateGetSet('_container', 'containerVisible'),
-});
-
-module.exports = compose(_ContentDelegate, function(args) {
-  this._panel = args.panel;
-  this._main = args.main;
-  this._options = {
-    sideMargin: args.options && args.options.sideMargin || 50,
-    panelPosition: args.options && args.options.panelPosition || 'left',
-  };
-
-	this._panelContainer = new ParentContainer().content(this._panel.width(this._options.maxWidth).left(0));
-
-  this._content = new ParentContainer().content(this._container = new HPile().left(0));
-
-/*
-	var prevX;
-	this._panelContainer.element.on('touchstart', function(event) {
-		event.stopPropagation();
-		prevX = event.touches[0].pageX;
-
-		var ontouchmove, ontouchend;
-		this._panelContainer.element.on('touchmove', ontouchmove = function(event) {
-			var deltaX = event.touches[0].pageX - prevX;
-
-			this._positionPanel(this._panelPosition + (this._options.panelPosition === 'left' ? -1 : 1) * deltaX);
-			event.stopPropagation();
-			event.preventDefault();
-			prevX = event.touches[0].pageX;
-		}.bind(this));
-		this._panelContainer.element.on('touchend', ontouchend = function() {
-			this._panelContainer.element.off('touchmove', ontouchmove);
-			this._panelContainer.element.off('touchend', ontouchend);
-		}.bind(this));
-	}.bind(this));
-
-	// left-border swipe
-	var onfirsttouchmove,
-		swipableBorderWidth = 5;
-	document.addEventListener('touchmove', onfirsttouchmove = function(event) {
-		var elmtBBox = this._content.element.domNode.getBoundingClientRect();
-		var eventClientX = event.touches[0].clientX;
-		var eventClientY = event.touches[0].clientY;
-		if (elmtBBox.top < eventClientY && eventClientY < elmtBBox.top + this.height() &&
-				(this._options.panelPosition === 'left') ?
-					elmtBBox.left < eventClientX && eventClientX < elmtBBox.left + swipableBorderWidth:
-					elmtBBox.left + this.width() - swipableBorderWidth < eventClientX && eventClientX < elmtBBox.left + this.width()) {
-			prevX = event.touches[0].pageX;
-
-			document.removeEventListener('touchmove', onfirsttouchmove, true);
-			event.stopPropagation();
-
-			var ontouchmove, ontouchend;
-			document.addEventListener('touchmove', ontouchmove = function(event) {
-				var deltaX = event.touches[0].pageX - prevX;
-
-				this._positionPanel(this._panelPosition + (this._options.panelPosition === 'left' ? -1 : 1) * deltaX);
-				event.stopPropagation();
-				prevX = event.touches[0].pageX;
-			}.bind(this), true);
-			document.addEventListener('touchend', ontouchend = function() {
-				document.removeEventListener('touchmove', ontouchmove, true);
-				document.removeEventListener('touchend', ontouchend, true);
-				// reinit
-				document.addEventListener('touchmove', onfirsttouchmove, true);
-			}.bind(this), true);
-		}
-	}.bind(this), true);
-*/
-	// open state
-  this._panelPosition = 0;
-}, {
-  _layout: function() {
-		if (this._options.panelPosition === 'left') {
-			this._container.left(- this._panelPosition);
-		} else {
-			this._container.left(this._panelPosition - (this._width - this._options.sideMargin));
-		}
+		this._content.content(contentArg);
   },
 
   width: function(width) {
     if (arguments.length) {
       this._width = width;
 			this._content.width(width);
-
-			this._main.width(width);
-			this._panelContainer.width(width - this._options.sideMargin);
-
-			if (this._options.panelPosition === 'left') {
-				this._container.content([this._panelContainer, this._main]);
-			} else {
-				this._container.content([this._main, this._panelContainer]);
-			}
-
       this._layout();
       return this;
     } else {
@@ -142,16 +94,28 @@ module.exports = compose(_ContentDelegate, function(args) {
     }
   },
 
-  _positionPanel: function(pos) {
-    this._panelPosition = Math.max(0, Math.min(pos, this._width - this._options.sideMargin));
-    this._layout();
-  },
-
-	slidePanel: function(open) {
-		this._positionPanel(open ? 0 : this._width - this._options.sideMargin);
+	_animSlide: function(endPos) {
+		var anim = new Anim([{
+				start: this._separatorPos, end: endPos, duration: 500, easing: easeOutQuint
+		}]);
+		anim.init(Date.now());
+		anim.render(function(pos) {
+				this._separatorPos = pos;
+				this._layout();
+		}.bind(this));
 	},
 
-  isPanelOpen: function() {
-    return this._panelPosition === 0;
-  }
+	slidePanels: function(dir) {
+		if (dir < 0) {
+			// slide towards left
+			if (this._separatorPos > 0) {
+				this._animSlide(0);
+			}
+		} else {
+			// slide towards right
+			if (this._separatorPos < 100) {
+				this._animSlide(100);
+			}
+		}
+	},
 });

@@ -10,7 +10,7 @@ var Button = require('absolute/Button');
 var ModelView = require('./ModelView');
 var Menu = require('./Menu');
 var Saver = require('./utils/Saver');
-var PanelContainer = require('./PanelContainer');
+var SidePanelContainer = require('./SidePanelContainer');
 
 /**
 Vue qui affiche le menu et une zone principale
@@ -29,7 +29,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	commonArgs.saver = new Saver(commonArgs)
 	var mainArea = new Switch();
 	var message = new Label();
-	this._content = new PanelContainer({
+	this._content = new SidePanelContainer({
 		panel: new VFlex([
 				[new Button().value("logout").onAction(args.logout).height(30), 'fixed'],
 				this._menu = new Menu(create(commonArgs, {

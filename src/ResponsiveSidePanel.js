@@ -3,8 +3,8 @@ var _ContentDelegate = require('absolute/_ContentDelegate');
 var Switch = require('absolute/Switch');
 var assign = require('lodash/object/assign');
 
-var DuoPanelLarge = require('./DuoPanelLarge');
-var DuoPanelSmall = require('./DuoPanelSmall');
+var SidePanelLarge = require('./SidePanelLarge');
+var SidePanelSmall = require('./SidePanelSmall');
 
 module.exports = compose(_ContentDelegate, function(args) {
   this._args = args;
@@ -19,16 +19,16 @@ module.exports = compose(_ContentDelegate, function(args) {
 }, {
   _layout: function() {
     if (this._mode === 'large') {
-      this._content.content(this._layouter = new DuoPanelLarge({
+      this._content.content(this._layouter = new SidePanelLarge({
         main: this._args.main,
         panel: this._args.panel,
         options: {
           panelPosition: this._options.panelPosition,
-          panelMaxWidth: this._options.panelMaxWidth,
+          panelWidth: this._options.panelMaxWidth,
         },
       }));
     } else {
-      this._content.content(this._layouter = new DuoPanelSmall({
+      this._content.content(this._layouter = new SidePanelSmall({
         main: this._args.main,
         panel: this._args.panel,
         options: {
