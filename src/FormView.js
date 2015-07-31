@@ -180,31 +180,33 @@ module.exports = compose(_Destroyable, _ContentDelegate, function(args) {
 		"method": "model."+args.modelId+".fields_view_get",
 		"params": [args.formViewId || null, "form"],
 	});
-	this._content = new Margin(this._own(new Reactive({
-		value: new MappedValue(args.activeItem, function(itemId) {
+	this._content = new Margin(new Reactive({
+		value: this._own(new MappedValue(args.activeItem, function(itemId) {
 			var formArgs = create(args, {
 				itemId: itemId,
 				viewDef: viewDef,
 			})
 			if (itemId === 'new') {
+				self._destroy('attrsChangedListener')
 				return self._own(new ItemCreator(formArgs), 'form')
 			} else if (itemId) {
 				return new Reactive({
 					value: self._own(new FromEventValue(args.saver, 'attrsChanged', function () {
-						return new ItemEditor(formArgs)
-					}), 'form'),
+						return self._own(new ItemEditor(formArgs), 'form')
+					}), 'attrsChangedListener'),
 					content: new Switch(),
 					prop: 'content',
 				})
 			} else {
 				self._destroy('form')
+				self._destroy('attrsChangedListener')
 				return new Align(
 					new Label().value("Aucun élément sélectionné").width(200).height(60),
 				'middle', 'middle');
 			}
-		}),
+		})),
 		content: new Switch(),
 		prop: 'content',
-	})), 10);
+	}), 10);
 
 });

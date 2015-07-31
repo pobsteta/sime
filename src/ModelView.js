@@ -57,11 +57,16 @@ Elle maintient l'état du 'path' de navigation
 }
 */
 module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
+	var self = this
 	this._args = args;
 	this._content = new VFlex([
 		[this._pathBar = new HPile().content([
 			new Space().width(50),
-			new Button().value('<').width(30).onAction(this._back.bind(this))
+			new Button().value('<').width(30).onAction(function () {
+				args.saver.ensureChangesAreSaved().then(function () {
+					self._back()
+				})
+			}),
 		]).height(30), 'fixed'],
 		this._mainArea = new Switch(),
 	]);
