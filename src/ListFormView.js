@@ -20,19 +20,20 @@ var FormView = require('./FormView');
 }
 */
 module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
-	var mode = new Value('list');
+	var self = this
+	this.mode = new Value('list');
 	var listView = this._own(new ListView(create(args, {
-		onAction: toggleMode.bind(null, mode),
+		onAction: this.toggleMode.bind(this),
 	})));
 	var formView = new VFlex([
 		[new Button().value('basculer').height(60).onAction(function () {
-			args.saver.ensureChangesAreSaved().then(toggleMode.bind(null, mode))
+			args.saver.ensureChangesAreSaved().then(self.toggleMode.bind(self))
 		}), 'fixed'],
 		this._own(new FormView(args)),
 	]);
 
 	this._content = new Reactive({
-		value: new MappedValue(mode, function(modeValue) {
+		value: new MappedValue(this.mode, function(modeValue) {
 			if (modeValue === 'list') {
 				return listView;
 			}
@@ -43,8 +44,9 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 		content: new Switch(),
 		prop: 'content',
 	});
+}, {
+	toggleMode: function () {
+		var mode = this.mode
+		mode.value(mode.value() === 'list' ? 'form' : 'list');
+	},
 });
-
-function toggleMode (mode) {
-	mode.value(mode.value() === 'list' ? 'form' : 'list');
-}

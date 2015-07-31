@@ -133,6 +133,7 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
     var selection = e.target.getFeatures();
 		if (selection.getLength()) {
 			args.activeItem.value(parseInt(selection.item(0).get('id')));
+			args.onSelect()
 		} else {
 			args.activeItem.value(null);
 		}

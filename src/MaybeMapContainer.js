@@ -24,6 +24,9 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args, PaneCons
 			container.content(new DuoPanel([
 				self._own(new MapConstructor(create(args, {
 					qgsFile: fileContent,
+					onSelect: function () {
+						paneView.mode.value('form')
+					},
 				}))),
 				paneView,
 			]));
