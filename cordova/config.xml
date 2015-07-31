@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="fr.bef.tryton" version="0.1" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+	<name>Tryton Mobile</name>
+	<description>
+		Tryton mobile client
+	</description>
+	<author email="contact@bioecoforests.com" href="http://www.bioecoforests.com">
+		Bio Eco Forests
+	</author>
+	<content src="index.html" />
+
+	<allow-navigation href="*" />
+
+	<icon src="icons/xhdpi.png" />
+	<platform name="android">
+		<icon src="icons/ldpi.png" density="ldpi" />
+		<icon src="icons/mdpi.png" density="mdpi" />
+		<icon src="icons/hdpi.png" density="hdpi" />
+		<icon src="icons/xhdpi.png" density="xhdpi" />
+	</platform>
+
+	<preference name="AndroidLaunchMode" value="singleTask"/>
+	<!-- si l'application est assez lourde à charger, évite une erreur de timeout sur les appareils peu puissants -->
+	<!-- <preference name="LoadUrlTimeoutValue" value="60000"/> -->
+	<preference name="android-minSdkVersion" value="16" />
+	<preference name="android-targetSdkVersion" value="19" />
+</widget>

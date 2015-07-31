@@ -7,8 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "watchify boot.js -o www/bundle.js -dv",
     "inline": "html-inline boot.html > index.html",
-    "build": "browserify src/app.js | uglifyjs -mc > cordova-project/www/app.js && cp cordova/config-full.xml cordova-project/config.xml",
-    "build-free": "browserify src/app-free.js | uglifyjs -mc > cordova-project/www/app.js && cp cordova/config-free.xml cordova-project/config.xml"
+    "build": "browserify boot.js | uglifyjs -mc > cordova/project/www/app.js"
   },
   "author": "KaeS",
   "license": "ISC",
