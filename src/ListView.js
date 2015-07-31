@@ -20,6 +20,7 @@ var Clickable = require('absolute/Clickable');
 
 var getFieldIdsToRequest = require('./getFieldIdsToRequest');
 var createFieldDisplayer = require('./fieldDisplayer')
+var getFieldsFromView = require('./utils/getFieldsFromView')
 
 /**
 @params args {
@@ -71,19 +72,20 @@ function displayList (args) {
 		"method":"model."+modelId+".search",
 		"params":[query, 0, 10, null],
 	})]).then(function(res) {
-		var fieldsRes = res[0];
+		var viewDef = res[0];
 		var itemIds = res[1];
-		var fieldIds = Object.keys(fieldsRes.fields);
+		var arch = new DOMParser().parseFromString(viewDef.arch, 'application/xml')
+		var fieldIds = getFieldsFromView(arch)
 		return request({
 			"method":"model."+modelId+".read",
-			"params":[itemIds, getFieldIdsToRequest(fieldsRes.fields)],
+			"params":[itemIds, getFieldIdsToRequest(viewDef.fields)],
 		}).then(function(dataRes) {
 			itemIds.forEach(function(itemId) {
 				var item = find(dataRes, {id: itemId});
 				var itemView = new Background(new VPile().content(fieldIds.map(function(fieldId) {
 					return new HFlex([
-						[new Label().value(fieldsRes.fields[fieldId].string).width(150), 'fixed'],
-						createFieldDisplayer(item, fieldsRes.fields[fieldId]),
+						[new Label().value(viewDef.fields[fieldId].string).width(150), 'fixed'],
+						createFieldDisplayer(item, viewDef.fields[fieldId]),
 					]).height(30);
 				}))).color('transparent').border('1px solid');
 				// TODO : remplacer ces listeners inividuels par un listener global...

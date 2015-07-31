@@ -1,3 +1,8 @@
+var compose = require('ksf/utils/compose');
+var _ContentDelegate = require('absolute/_ContentDelegate');
+var VScroll = require('absolute/VScroll');
+var VFlex = require('absolute/VFlex');
+var HFlex = require('absolute/HFlex');
 var Label = require('absolute/Label');
 var LabelInput = require('absolute/LabelInput');
 var Background = require('absolute/Background');
@@ -16,34 +21,30 @@ var getViewsByType = function (arch, fieldName) {
 	return viewsByType
 }
 
-function createChoiceList (selectedItemId, field, changes, message, request, onInput) {
-	message.value('loading...');
-	var modelId = field.relation;
-	var list = new VPile();
-	request({method: "model."+modelId+".search_read", params: [
+var ChoiceList = compose(_ContentDelegate, function (args) {
+	var container = new VPile().content([new Label().value("Chargement...")]);
+	this._content = new VScroll(container)
+	args.request({method: "model."+args.modelId+".search_read", params: [
 		[],
 		0,
 		10,
 		null,
 		['rec_name'],
-	],
-	}).then(function(items) {
-		items.forEach(function(item) {
+	]}).then(function(items) {
+		container.content(items.map(function(item) {
 			var itemId = item.id;
-			var itemView = new Clickable(new Background(
-				new Label().value(item['rec_name'])
-			).color(itemId === selectedItemId ? 'lightblue' : 'lightgrey').border('1px solid')).onAction(function() {
-				onInput(itemId);
-			}).height(30);
-			list.add(itemId, itemView);
-		});
-		message.value('loaded');
+			var recName = item['rec_name']
+			return new Clickable(new Background(
+				new Label().value(recName)
+			).color(itemId === args.activeItem ? 'lightblue' : 'lightgrey').border('1px solid')).onAction(function() {
+				args.onInput(itemId, recName);
+			}).height(60);
+		}))
 	}, function(err) {
-		message.value("erreur");
 		console.log("erreur", err);
+		container.content([new Label().value("Erreur lors du chargement de la liste")])
 	});
-	return list;
-}
+})
 
 
 var editFieldFactories = {
@@ -82,15 +83,35 @@ var editFieldFactories = {
 	many2one: function(args) {
 		var field = args.field;
 		var item = args.itemValue;
-		return new Button().value(item[field.name+'.rec_name']).onAction(function() {
-			var modelId = field.relation;
-			var itemId = item[field.name];
-			var viewsByType = getViewsByType(args.arch, field.name)
-			args.nextItem(modelId, itemId, viewsByType.form);
-			// createChoiceList(item[field.name], field, changes, message, request, function (itemId) {
-			// 	changes[field.name] = itemId;
-			// });
-		});
+		var modelId = field.relation;
+		var itemId = item[field.name];
+		var selectButton
+		return new HFlex([
+			selectButton = new Button().value(item[field.name+'.rec_name']).onAction(function() {
+				var currentValue = args.changes.attrs[field.name] || itemId
+				args.modal(new VPile().content([
+					new ChoiceList({
+						modelId: modelId,
+						activeItem: currentValue,
+						onInput: function (newItemId, recName) {
+							args.changes.attrs[field.name] = newItemId
+							selectButton.value(recName)
+							args.modal(null)
+						},
+						request: args.request,
+					}).height(500),
+					new Button().value("Annuler").onAction(function () {
+						args.modal(null)
+					}).height(60),
+				]).width(200))
+			}),
+			[new Button().value(">").onAction(function () {
+				args.saver.ensureChangesAreSaved().then(function () {
+					var viewsByType = getViewsByType(args.arch, field.name)
+					args.nextItem(modelId, itemId, viewsByType.form);
+				})
+			}).width('60'), 'fixed'],
+		])
 	},
 	one2many: function(args) {
 		var field = args.field;
@@ -108,7 +129,7 @@ var editFieldFactories = {
 			args.nextCollection(modelId, query, viewsByType.tree, viewsByType.form);
 		});
 	},
-	// pour l'instant c'est du copier/coller de one2many
+	// TODO: pour l'instant c'est du copier/coller de one2many mais il faut corriger la query
 	many2many: function(args) {
 		var field = args.field;
 		var item = args.itemValue;

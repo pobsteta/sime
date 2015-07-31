@@ -4,6 +4,7 @@ var create = require('lodash/object/create');
 
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var _Destroyable = require('ksf/base/_Destroyable');
+var FromEventValue = require('ksf/observable/FromEventValue')
 var Label = require('absolute/Label');
 var MappedValue = require('ksf/observable/MappedValue');
 var Reactive = require('absolute/Reactive');
@@ -20,7 +21,7 @@ var createFieldEditor = require('./fieldEditor')
 var createFieldDisplayer = require('./fieldDisplayer')
 
 var getFieldIdsToRequest = require('./getFieldIdsToRequest');
-
+var getFieldsFromView = require('./utils/getFieldsFromView')
 
 
 // simple fomrulaire non réactif mais qui écrit dans changes.attrs
@@ -29,7 +30,7 @@ var ItemValueEditor = compose(_ContentDelegate, function (args) {
 
 	args.viewDef.then(function(viewDef) {
 		var arch = new DOMParser().parseFromString(viewDef.arch, 'application/xml')
-		var fieldIds = Object.keys(viewDef.fields);
+		var fieldIds = getFieldsFromView(arch);
 		fieldIds.forEach(function(fieldId) {
 			var field = viewDef.fields[fieldId]
 			var fieldWidget = field.readonly ? createFieldDisplayer(args.itemValue, field) : createFieldEditor(create(args, {
@@ -74,6 +75,7 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 		}
 	}))
 	this._own(on(args.saver, 'cancel', this._cancel.bind(this)))
+
 }, {
 	_save: function () {
 		var args = this._args
@@ -86,8 +88,7 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 		})
 	},
 	_cancel: function () {
-		var args = this._args
-		args.changes.attrs = {}
+		this._args.changes.attrs = {}
 		this._displayForm()
 	},
 	_displayForm: function () {
@@ -188,7 +189,13 @@ module.exports = compose(_Destroyable, _ContentDelegate, function(args) {
 			if (itemId === 'new') {
 				return self._own(new ItemCreator(formArgs), 'form')
 			} else if (itemId) {
-				return self._own(new ItemEditor(formArgs), 'form')
+				return new Reactive({
+					value: self._own(new FromEventValue(args.saver, 'attrsChanged', function () {
+						return new ItemEditor(formArgs)
+					}), 'form'),
+					content: new Switch(),
+					prop: 'content',
+				})
 			} else {
 				self._destroy('form')
 				return new Align(
@@ -199,4 +206,5 @@ module.exports = compose(_Destroyable, _ContentDelegate, function(args) {
 		content: new Switch(),
 		prop: 'content',
 	})), 10);
+
 });

@@ -132,22 +132,26 @@ var trytonLogin = function(connectionValue, session, password) {
 	});
 };
 
+var Modal = compose(_ContentDelegate, function (content) {
+  this._content = new Background(
+    new Align(content, 'middle', 'middle')
+  ).color('lightgrey').opacity(0.8)
+})
+
 var ConfirmDialog = compose(_ContentDelegate, function (question) {
   var self = this
   this._response = new Promise(function(resolve){
-    self._content = new Background(
-      new Align(new VPile().content([
-        new Label().value(question).height(30),
-        new HFlex([
-          new Button().value("OK").onAction(function() {
-            resolve(true)
-          }),
-          new Button().value("Annuler").onAction(function() {
-            resolve(false)
-          }),
-        ]).height(60),
-      ]).width(200), 'middle', 'middle')
-    ).color('lightgrey').opacity(0.8)
+    self._content = new Modal(new VPile().content([
+      new Label().value(question).height(30),
+      new HFlex([
+        new Button().value("OK").onAction(function() {
+          resolve(true)
+        }),
+        new Button().value("Annuler").onAction(function() {
+          resolve(false)
+        }),
+      ]).height(60),
+    ]).width(200))
   })
 }, {
   then: function () {
@@ -205,7 +209,10 @@ module.exports = compose(_ContentDelegate, function() {
             popupContainer.content(null)
             return res
           })
-        }
+        },
+        modal: function (content) {
+          popupContainer.content(content ? new Modal(content) : null)
+        },
 			});
 			appContainer.content(app);
 			return [
@@ -214,23 +221,21 @@ module.exports = compose(_ContentDelegate, function() {
 					if (!sessionToken) {
 						var passwordInput;
 						var authenticationMessage = new Label();
-						popupContainer.content(new Background(
-							new Align(new VPile().width(200).content([
-								passwordInput = new LabelInput().placeholder("password").height(30),
-								new Button().value("OK").height(30).onAction(function() {
-									authenticationMessage.value('authenticating...');
-									var pwd = passwordInput.value();
-									trytonLogin(connectionValue, session, pwd).then(function() {
-										authenticationMessage.value('authenticated');
-										popupContainer.content(null);
-										passwordValue.value(pwd);
-									}, function() {
-										authenticationMessage.value('authentication error');
-									});
-								}),
-								authenticationMessage.height(30),
-							]), 'middle', 'middle')
-						).color('lightgrey').opacity(0.8));
+						popupContainer.content(new Modal(new VPile().width(200).content([
+							passwordInput = new LabelInput().placeholder("password").height(30),
+							new Button().value("OK").height(30).onAction(function() {
+								authenticationMessage.value('authenticating...');
+								var pwd = passwordInput.value();
+								trytonLogin(connectionValue, session, pwd).then(function() {
+									authenticationMessage.value('authenticated');
+									popupContainer.content(null);
+									passwordValue.value(pwd);
+								}, function() {
+									authenticationMessage.value('authentication error');
+								});
+							}),
+							authenticationMessage.height(30),
+						])))
 					}
 				}),
 			];
