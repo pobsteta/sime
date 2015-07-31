@@ -62,12 +62,12 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	this._content = new VFlex([
 		[this._pathBar = new HPile().content([
 			new Space().width(50),
-			new Button().value('<').width(30).onAction(function () {
+			new Button().value('<').width(args.defaultButtonSize).onAction(function () {
 				args.saver.ensureChangesAreSaved().then(function () {
 					self._back()
 				})
 			}),
-		]).height(30), 'fixed'],
+		]).height(args.defaultButtonSize), 'fixed'],
 		this._mainArea = new Switch(),
 	]);
 

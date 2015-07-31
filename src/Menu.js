@@ -33,14 +33,14 @@ function displayMenu (args) {
 		var menuPage = new Margin(new VScroll(menuContainer), 10);
 		args.container.content(menuPage, 'left');
 		if (menuItemId) {
-			menuContainer.add('back', new Button().value('<-').height(60).onAction(function() {
+			menuContainer.add('back', new Margin(new Button().value('<').onAction(function() {
 				args.container.content(args.previous, 'right');
-			}));
+			}), 10).height(args.defaultButtonSize+20));
 		}
 		res.forEach(function(childMenuItemId) {
 			var menuItemLabel = new Value(childMenuItemId + '');
 			var menuItem = new HFlex([
-				[new Button().width(30).value('+').onAction(function() {
+				[new Button().width(args.defaultButtonSize).value('+').onAction(function() {
 					displayMenu(create(args, {
 						menuItemId: childMenuItemId,
 						previous: menuPage,
@@ -89,7 +89,7 @@ function displayMenu (args) {
 					}),
 					[new Background(new Space()).height(1).color('#eee'), 'fixed'],
 				]),
-			]).height(60);
+			]).height(args.defaultButtonSize);
 			menuContainer.add(childMenuItemId+'', menuItem);
 			request({
 				"method":"model.ir.ui.menu.read",

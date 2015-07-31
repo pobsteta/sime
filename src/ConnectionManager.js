@@ -213,6 +213,7 @@ module.exports = compose(_ContentDelegate, function() {
         modal: function (content) {
           popupContainer.content(content ? new Modal(content) : null)
         },
+        defaultButtonSize: 50,
 			});
 			appContainer.content(app);
 			return [
