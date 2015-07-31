@@ -10,7 +10,7 @@ var Button = require('absolute/Button');
 var Reactive = require('absolute/Reactive');
 var Background = require('absolute/Background');
 var Space = require('absolute/Space');
-var Switch = require('absolute/Switch');
+var AnimatedPageSwitch = require('absolute/AnimatedPageSwitch');
 
 var Value = require('ksf/observable/Value');
 
@@ -31,10 +31,10 @@ function displayMenu (args) {
 	}).then(function(res) {
 		var menuContainer = new VPile();
 		var menuPage = new Margin(new VScroll(menuContainer), 10);
-		args.container.content(menuPage);
+		args.container.content(menuPage, 'left');
 		if (menuItemId) {
 			menuContainer.add('back', new Button().value('<-').height(60).onAction(function() {
-				args.container.content(args.previous);
+				args.container.content(args.previous, 'right');
 			}));
 		}
 		res.forEach(function(childMenuItemId) {
@@ -120,7 +120,7 @@ function displayMenu (args) {
 }
 */
 module.exports = compose(_ContentDelegate, function(args) {
-	this._content = new Switch();
+	this._content = new AnimatedPageSwitch();
 
 	displayMenu(create(args, {
 		container: this._content,
