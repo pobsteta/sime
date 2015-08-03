@@ -30,7 +30,7 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 			this._editBtn = new Button().value("Editer la géométrie").onAction(this._toggleEdit.bind(this)).width(100).visible(false),
 			this._addPartBtn = new Button().value("Ajouter une partie").onAction(this._addGeomPart.bind(this)).width(100).visible(false),
 			this._removePartBtn = new Button().value("Supprimer une partie").onAction(this._removeGeomPart.bind(this)).width(100).visible(false),
-			this._saveBtn = new Button().value("Enregistrer").onAction(this._saveGeom.bind(this)).width(100).visible(false),
+			this._saveBtn = new Button().value("Enregistrer la géométrie").onAction(this._saveGeom.bind(this)).width(100).visible(false),
 		])
 	]);
 
@@ -311,6 +311,8 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 		this._partSelectTool.getFeatures().clear();
 	},
 	_saveGeom: function() {
+		this._partDrawTool.finishDrawing()
+
 		var geomParts = this._editingSource.getFeatures(),
 			geom = null;
 
