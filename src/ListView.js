@@ -14,6 +14,7 @@ var VFlex = require('absolute/VFlex');
 var HFlex = require('absolute/HFlex');
 var VPile = require('absolute/VPile');
 var VScroll = require('absolute/VScroll');
+var Space = require('absolute/Space');
 var Margin = require('absolute/Margin');
 var Background = require('absolute/Background');
 var Clickable = require('absolute/Clickable');
@@ -39,9 +40,16 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 			"params": [args.listViewId || null, "tree"],
 		}),
 	})
-	this._content = new Margin(new VFlex([
+	this._content = new VFlex([
 		new VScroll(container),
-	]), 10);
+		[new HFlex([
+			[new Space().width(args.defaultButtonSize+10), 'fixed'],
+			new Button().value("Ajouter un élément").onAction(function () {
+				args.activeItem.value('new')
+				if (args.onAction) {args.onAction()}
+			}),
+		]).height(args.defaultButtonSize), 'fixed'],
+	]);
 
 	displayList(listArgs);
 	var refreshList = function () {
@@ -61,24 +69,17 @@ function displayList (args) {
 
 	message.value('loading...');
 
-	args.container.content([
-		new Button().value("Ajouter un élément").height(60).onAction(function () {
-			args.activeItem.value('new')
-			if (args.onAction) {args.onAction()}
-		}),
-	])
-
 	return when.all([args.listViewDef, request({
-		"method":"model."+modelId+".search",
-		"params":[query, 0, 10, null],
+		"method": "model."+modelId+".search",
+		"params": [query, 0, 10, null],
 	})]).then(function(res) {
 		var viewDef = res[0];
 		var itemIds = res[1];
 		var arch = new DOMParser().parseFromString(viewDef.arch, 'application/xml')
 		var fieldIds = getFieldsFromView(arch)
 		return request({
-			"method":"model."+modelId+".read",
-			"params":[itemIds, getFieldIdsToRequest(viewDef.fields)],
+			"method": "model."+modelId+".read",
+			"params": [itemIds, getFieldIdsToRequest(viewDef.fields)],
 		}).then(function(dataRes) {
 			itemIds.forEach(function(itemId) {
 				var item = find(dataRes, {id: itemId});
@@ -92,10 +93,10 @@ function displayList (args) {
 				bindValue(args.activeItem, function(activeItemId) {
 					itemView.color(activeItemId === itemId ? 'lightblue' : 'transparent');
 				});
-				args.container.add(itemId, new Clickable(itemView).onAction(function() {
+				args.container.add(itemId, new Margin(new Clickable(itemView).onAction(function() {
 					args.activeItem.value(itemId);
 					if (args.onAction) {args.onAction(itemId)}
-				}).height(fieldIds.length*30));
+				}), 10).height(fieldIds.length*30+20));
 			});
 			message.value('loaded');
 		}, function(err) {

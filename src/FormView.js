@@ -16,6 +16,7 @@ var Margin = require('absolute/Margin');
 var Switch = require('absolute/Switch');
 var Align = require('absolute/Align');
 var Button = require('absolute/Button');
+var Space = require('absolute/Space');
 
 var createFieldEditor = require('./fieldEditor')
 var createFieldDisplayer = require('./fieldDisplayer')
@@ -63,10 +64,12 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 	this._content = new VFlex([
 		new VScroll(formContainer),
 		[new HFlex([
+			[new Space().width(args.defaultButtonSize+10), 'fixed'],
 			new Button().value("Enregistrer").onAction(this._save.bind(this)),
 			new Button().value("Annuler").onAction(this._cancel.bind(this)),
 			new Button().value("Supprimer").onAction(this._destroyItem.bind(this)),
-		]).height(60), 'fixed'],
+		]).height(args.defaultButtonSize), 'fixed'],
+
 	])
 
 	this._own(on(args.saver, 'save', function () {
@@ -146,7 +149,8 @@ var ItemCreator = compose(_ContentDelegate, _Destroyable, function (args) {
 				args.changes.attrs = {}
 				args.activeItem.value(null)
 			}),
-		]).height(60), 'fixed'],
+			[new Space().width(args.defaultButtonSize+10), 'fixed'],
+		]).height(args.defaultButtonSize), 'fixed'],
 	])
 
 	this._own(on(args.saver, 'save', function () {
@@ -186,7 +190,7 @@ module.exports = compose(_Destroyable, _ContentDelegate, function(args) {
 		"method": "model."+args.modelId+".fields_view_get",
 		"params": [args.formViewId || null, "form"],
 	});
-	this._content = new Margin(new Reactive({
+	this._content = new Reactive({
 		value: this._own(new MappedValue(args.activeItem, function(itemId) {
 			var formArgs = create(args, {
 				itemId: itemId,
@@ -213,6 +217,6 @@ module.exports = compose(_Destroyable, _ContentDelegate, function(args) {
 		})),
 		content: new Switch(),
 		prop: 'content',
-	}), 10);
+	})
 
 });
