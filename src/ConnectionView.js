@@ -15,6 +15,11 @@ var Menu = require('./Menu');
 var Saver = require('./utils/Saver');
 var SidePanelContainer = require('./SidePanelContainer');
 
+var sublevel = require('sublevel')
+var levelPromise = require('level-promise')
+var clearDb = require('./utils/clearDb')
+var download = require('./utils/download')
+
 import trytonLogin from './utils/trytonLogin'
 
 /**
@@ -73,7 +78,18 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 					},
 					message: message,
 				})).width(300),
-				[new Button().value("Télécharger").height(args.defaultButtonSize), 'fixed'],
+				[new Button().value("Télécharger").onAction(function () {
+					message.value("Téléchargement des données en cours...")
+					var rawDb = args.localDb
+					clearDb(rawDb).then(() => {
+					  var db = sublevel(rawDb)
+					  levelPromise(db)
+					  download(args.request, db, 132).then(
+							message.value.bind(message, "Téléchargement terminé"),
+							message.value.bind(message, "Erreur lors du téléchargement")
+						)
+					})
+				}).height(args.defaultButtonSize), 'fixed'],
 				[new Button().value("Passer hors ligne").onAction(args.goOffline).height(args.defaultButtonSize), 'fixed'],
 				[message.height(30), 'fixed'],
 			]),

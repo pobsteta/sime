@@ -14,6 +14,10 @@ var Label = require('absolute/Label');
 var LabelInput = require('absolute/LabelInput');
 var Button = require('absolute/Button');
 
+var levelup = require('levelup')
+var leveljs = require('level-js')
+
+
 var OnlineManager = require('./OnlineManager');
 
 
@@ -150,6 +154,10 @@ module.exports = compose(_ContentDelegate, function(args) {
 					connection.value(null);
 					session.value(null);
 				},
+        localDb: levelup('localDb', {
+          db: leveljs,
+          valueEncoding: 'json',
+        }),
 			}));
 			appContainer.content(app);
 			return app
