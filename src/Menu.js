@@ -14,21 +14,14 @@ var AnimatedPageSwitch = require('absolute/AnimatedPageSwitch');
 
 var Value = require('ksf/observable/Value');
 
+var getMenuChildren = require('./utils/getMenuChildren')
 
 function displayMenu (args) {
 	var menuItemId = args.menuItemId
 	var message = args.message
 	var request = args.request
 	message.value('loading...');
-	request({
-		"method": "model.ir.ui.menu.search",
-		"params": [
-			[["parent", "=", menuItemId]],
-			0,
-			1000,
-			null,
-		],
-	}).then(function(res) {
+	getMenuChildren(request, menuItemId).then(function(res) {
 		var menuContainer = new VPile();
 		var menuPage = new Margin(new VScroll(menuContainer), 10);
 		args.container.content(menuPage, 'left');
@@ -92,8 +85,8 @@ function displayMenu (args) {
 			]).height(args.defaultButtonSize);
 			menuContainer.add(childMenuItemId+'', menuItem);
 			request({
-				"method":"model.ir.ui.menu.read",
-				"params":[
+				"method": "model.ir.ui.menu.read",
+				"params": [
 					[childMenuItemId],
 					["childs", "name", "parent", "favorite", "active", "icon", "parent.rec_name", "rec_name", "_timestamp"],
 				],

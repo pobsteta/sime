@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "watchify boot.js -o dev/bundle.js -dv",
+    "dev": "watchify boot.js -o dev/bundle.js -dv -t babelify",
     "bundle": "browserify boot.js | uglifyjs -mc > dev/bundle.js",
     "html": "npm run bundle && html-inline dev/index.html > dev/app.html",
     "build": "browserify boot.js | uglifyjs -mc > cordova/project/www/app.js"
@@ -15,19 +15,25 @@
   "dependencies": {
     "absolute": "kaesapps/absolute#master",
     "ksf": "kaesapps/ksf#master",
+    "level-js": "2.2.1",
+    "level-promise": "^2.1.0",
+    "levelup": "1.2.1",
     "lodash": "^3.9.3",
     "openlayers": "^3.7.0",
+    "proj4": "^2.3.6",
     "rest": "^1.3.1",
-    "when": "^3.7.3",
-    "proj4": "^2.3.6"
+    "sublevel": "^2.4.0",
+    "when": "^3.7.3"
   },
   "devDependencies": {
     "brfs": "latest",
-    "cordova": "4.3.0"
+    "cordova": "4.3.0",
+    "babelify": "6.1.3"
   },
   "browserify": {
     "transform": [
-      "brfs"
+      "brfs",
+      "babelify"
     ]
   }
 }

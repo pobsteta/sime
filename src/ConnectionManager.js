@@ -160,6 +160,7 @@ var ConfirmDialog = compose(_ContentDelegate, function (question) {
 })
 
 module.exports = compose(_ContentDelegate, function() {
+  var self = this
 	var appContainer, popupContainer;
 	this._content = new ZPile().content([
 		appContainer = new Switch().depth(1000),
@@ -172,11 +173,11 @@ module.exports = compose(_ContentDelegate, function() {
 	});
 
 	var connection = this._connection = new PersistableValue('connection'); // null or {userId, userPref}
-	var session = new Value(null); // null or sessionToken
+	var session = new Value(null);
 	var passwordValue = new Value(null);
 	bindValueDestroyable(this._connection, function(connectionValue) {
 		if (connectionValue) {
-			var authenticatedRpcRequest = jsonRpcRequest
+			var authenticatedRpcRequest = self._rpcRequest = jsonRpcRequest
 				.wrap(defaultInterceptor, {path: connectionValue.url})
 				.wrap(trytonAuthenticatedInterceptor, {
 					userId: connectionValue.userId,
@@ -188,7 +189,6 @@ module.exports = compose(_ContentDelegate, function() {
 				.wrap(mime, { mime: 'text/xml'})
 				.wrap(errorCode)
 				.wrap(basicAuth, { username: connectionValue.userName })
-				// TODO: demander comment déterminer l'URL WFS
 				.wrap(wfsInterceptor, {
 					prefix: connectionValue.url.replace('8000', '8001') + '/model/wfs/wfs/wfs?SERVICE=WFS&VERSION=1.0.0&',
 					passwordR: passwordValue,
