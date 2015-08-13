@@ -1,16 +1,21 @@
 var compose = require('ksf/utils/compose');
 var _Destroyable = require('ksf/base/_Destroyable');
+var bindValue = require('ksf/observable/bindValue');
 var create = require('lodash/object/create');
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var VFlex = require('absolute/VFlex');
 var Switch = require('absolute/Switch');
 var Label = require('absolute/Label');
 var Button = require('absolute/Button');
+import VPile from 'absolute/VPile'
+var LabelInput = require('absolute/LabelInput');
 
 var ModelView = require('./ModelView');
 var Menu = require('./Menu');
 var Saver = require('./utils/Saver');
 var SidePanelContainer = require('./SidePanelContainer');
+
+import trytonLogin from './utils/trytonLogin'
 
 /**
 Vue qui affiche le menu et une zone principale
@@ -20,6 +25,30 @@ Vue qui affiche le menu et une zone principale
 */
 module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	var self = this
+	var session = args.session
+
+	this._own(bindValue(session, function(sessionToken) {
+		if (!sessionToken) {
+			var passwordInput;
+			var authenticationMessage = new Label();
+			args.modal(new VPile().width(200).content([
+				passwordInput = new LabelInput().placeholder("password").height(30),
+				new Button().value("OK").height(30).onAction(function() {
+					authenticationMessage.value('authenticating...');
+					var pwd = passwordInput.value();
+					trytonLogin(args.connectionValue, session, pwd).then(function() {
+						authenticationMessage.value('authenticated');
+						args.modal(null);
+						args.passwordValue.value(pwd);
+					}, function() {
+						authenticationMessage.value('authentication error');
+					});
+				}),
+				authenticationMessage.height(30),
+			]))
+		}
+	}))
+
 	var commonArgs = create(args, {
 		changes: {
 			geom: null,
@@ -44,11 +73,13 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 					},
 					message: message,
 				})).width(300),
+				[new Button().value("Télécharger").height(args.defaultButtonSize), 'fixed'],
+				[new Button().value("Passer hors ligne").onAction(args.goOffline).height(args.defaultButtonSize), 'fixed'],
 				[message.height(30), 'fixed'],
 			]),
 		options: {
 			panelPosition: 'left',
-			panelOpen: true
+			panelOpen: true,
 		},
 		main: mainArea.depth(100),
 	});
