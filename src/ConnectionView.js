@@ -82,9 +82,12 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 					message.value("Téléchargement des données en cours...")
 					var rawDb = args.localDb
 					clearDb(rawDb).then(() => {
-					  var db = sublevel(rawDb)
-					  levelPromise(db)
-					  download(args.request, db, 132).then(
+						var db = sublevel(rawDb)
+						levelPromise(db)
+						download(args.request, args.wfsRequest, db,
+							132,  // menuID
+							[273503.64, 6243639.19, 274521.21, 6244408.34]  // extent in EPSG:3857 (Mercator)
+						).then(
 							message.value.bind(message, "Téléchargement terminé"),
 							message.value.bind(message, "Erreur lors du téléchargement")
 						)
