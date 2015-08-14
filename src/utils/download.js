@@ -1,7 +1,9 @@
 import getQgsFile from './getQgsFile'
 import getMenuChildren from './getMenuChildren'
+import ol from 'openlayers'
 
-const searchLimit = 100
+// set a limit to prevent accidental huge requests
+const resultsLimit = 100;
 
 function first (array) {
   return array.length ? array[0] : null
@@ -38,8 +40,9 @@ function storeItems (db, items) {
     }))
 }
 
-function getActionFromMenuItem (request, menuItemId) {
-  return request({
+
+function getActionFromMenuItem(requestRpc, menuItemId) {
+  return requestRpc({
 		"method": "model.ir.action.keyword.get_keyword",
 		"params": [
 			"tree_open",
@@ -50,16 +53,36 @@ function getActionFromMenuItem (request, menuItemId) {
   )
 }
 
-function loadGeoItems(request, db, modelId) {
-  console.log('fake loading of geo items for model '+modelId)
-  return Promise.resolve(true)
+function loadGeoItems(requestRpc, requestWfs, db, modelId, extent) {
+  var gml2Format = new ol.format.GML2({
+		featureNS: { tryton: 'http://www.tryton.org/' },
+		featureType: 'tryton:' + modelId,
+	})
+  // get an id-list of in-extent items
+  // NB: we don't use WFS data because attribute-values are untyped and to ensure consistency
+  return requestWfs('REQUEST=GetFeature&TYPENAME=tryton:' + modelId + '&SRSNAME=EPSG:2154&bbox=' + ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:2154').join(',') + '')
+    .then(response => {
+      let idsInExtent = gml2Format.readFeatures(
+        response.entity, { dataProjection: 'EPSG:2154', featureProjection: 'EPSG:3857' })
+          .map(feature => parseInt(feature.getId().split('.').pop())) // convert id to number, (eg. from 'cg.ug.123' to 123)
+      // get an id-list of items with no geometry
+      // then download data for all items
+      return requestRpc({method: 'model.' + modelId + '.search', params: [
+        ['geom', '=', null],
+        0,
+        resultsLimit,
+      ]}).then(idsWithNoGeom => requestRpc({method: 'model.' + modelId + '.read', params: [
+          idsInExtent.concat(idsWithNoGeom),
+          [], // all fields
+        ]}).then(items => storeItems(db, items)))
+  })
 }
 
-function loadNonGeoItems (request, db, modelId) {
-  return request({method: 'model.'+modelId+'.search_read', params: [
+function loadNonGeoItems (requestRpc, db, modelId) {
+  return requestRpc({method: 'model.'+modelId+'.search_read', params: [
     [], // all items
     0,
-    searchLimit, // limit
+    resultsLimit, // limit
     null,
     [], // all fields
   ]}).then(items => storeItems(db, items))
@@ -73,16 +96,16 @@ function getViewDef(request, modelId, viewId) {
 }
 
 
-function loadViews(request, db, modelId) {
-  return request({method: 'model.ir.ui.view.search', params: [
+function loadViews(requestRpc, db, modelId) {
+  return requestRpc({method: 'model.ir.ui.view.search', params: [
     [["model", "=", modelId]],
 		0,
-		searchLimit,
+		resultsLimit,
 		null,
 		[],
   ]}).then(viewIds =>
     Promise.all(viewIds.map(viewId =>
-      getViewDef(request, modelId, viewId)
+      getViewDef(requestRpc, modelId, viewId)
     )).then(viewDefs => viewDefs.map(viewDef => {
       viewDef.id = viewDef['view_id']
       return viewDef
@@ -90,55 +113,55 @@ function loadViews(request, db, modelId) {
   )
 }
 
-function loadModelDefaultValue(request, db, modelId, props) {
-  request({method: 'model.'+modelId+'.default_get', params: [
+function loadModelDefaultValue(requestRpc, db, modelId, props) {
+  requestRpc({method: 'model.'+modelId+'.default_get', params: [
 			props,
 		]}).then(defaultValue => put(db, 'defaultValue', defaultValue))
 }
 
-function getModelDef(request, modelId) {
-  return request({method: 'model.ir.model.search_read', params: [
+function getModelDef(requestRpc, modelId) {
+  return requestRpc({method: 'model.ir.model.search_read', params: [
     [["model", "=", modelId]],
 		0,
 		1,
 		null,
 		[],
   ]}).then(first).then(modelDef => {
-    return getModelFields(request, modelDef.id).then(fields => {
+    return getModelFields(requestRpc, modelDef.id).then(fields => {
       modelDef.fields = fields
       return modelDef
     })
   })
 }
 
-function getModelFields(request, modelDbId) {
-  return request({method: 'model.ir.model.field.search_read', params: [
+function getModelFields(requestRpc, modelDbId) {
+  return requestRpc({method: 'model.ir.model.field.search_read', params: [
     [["model", "=", modelDbId]],
 		0,
-		searchLimit,
+		resultsLimit,
 		null,
 		[],
   ]})
 }
 
-function loadModel (request, modelsDb, modelId) {
+function loadModel (requestRpc, requestWfs, modelsDb, modelId, extent) {
   var db = sublevel(modelsDb, modelId)
   return Promise.all([
-    loadViews(request, sublevel(db, 'views'), modelId),
-    getModelDef(request, modelId).then(modelDef => Promise.all([
+    loadViews(requestRpc, sublevel(db, 'views'), modelId),
+    getModelDef(requestRpc, modelId).then(modelDef => Promise.all([
       put(db, 'modelDef', modelDef),
-      loadModelDefaultValue(request, db, modelId, modelDef.fields.map(get('name'))),
+      loadModelDefaultValue(requestRpc, db, modelId, modelDef.fields.map(get('name'))),
     ])),
-    getQgsFile(request, modelId).then(qgsFile => {
+    getQgsFile(requestRpc, modelId).then(qgsFile => {
       if (qgsFile) {
         return Promise.all([
           put(db, 'qgsFile', qgsFile),
-          loadGeoItems(request, sublevel(db, 'items'), modelId),
+          loadGeoItems(requestRpc, requestWfs, sublevel(db, 'items'), modelId, extent),
         ])
       } else {
         return Promise.all([
           del(db, 'qgsFile'), // be sure to remove existing file if any
-          loadNonGeoItems(request, sublevel(db, 'items'), modelId),
+          loadNonGeoItems(requestRpc, sublevel(db, 'items'), modelId),
         ])
       }
     }),
@@ -146,13 +169,13 @@ function loadModel (request, modelsDb, modelId) {
 }
 
 
-function loadMenuItemAction(request, db, menuItemId) {
-  return getActionFromMenuItem(request, menuItemId).then(action => {
+function loadMenuItemAction(requestRpc, requestWfs, db, menuItemId, extent) {
+  return getActionFromMenuItem(requestRpc, menuItemId).then(action => {
     if (action) {
       var modelId = action['res_model']
       return Promise.all([
         put(db, 'menuItemActions/'+menuItemId, action),
-        loadModel(request, sublevel(db, 'models'), modelId),
+        loadModel(requestRpc, requestWfs, sublevel(db, 'models'), modelId, extent),
       ])
     } else {
       return Promise.resolve(true)
@@ -160,32 +183,32 @@ function loadMenuItemAction(request, db, menuItemId) {
   })
 }
 
-function getMenuItemValue (request, menuItemId) {
-  return request({"method": "model.ir.ui.menu.read", "params": [
+function getMenuItemValue (requestRpc, menuItemId) {
+  return requestRpc({"method": "model.ir.ui.menu.read", "params": [
     [menuItemId],
     ["childs", "name", "parent", "favorite", "active", "icon", "parent.rec_name", "rec_name"],
   ]}).then(res => res[0])
 }
 
-function loadMenuItemValue(request, db, menuItemId) {
-  return getMenuItemValue(request, menuItemId).then(menuItemValue =>
+function loadMenuItemValue(requestRpc, db, menuItemId) {
+  return getMenuItemValue(requestRpc, menuItemId).then(menuItemValue =>
     put(db, menuItemId, menuItemValue)
   )
 }
 
-function loadMenuItem(request, db, menuItemId) {
+function loadMenuItem(requestRpc, requestWfs, db, menuItemId, extent) {
   return Promise.all([
-    loadMenuItemValue(request, sublevel(db, 'menuItemValues'), menuItemId),
-    loadMenuItemAction(request, db, menuItemId),
+    loadMenuItemValue(requestRpc, sublevel(db, 'menuItemValues'), menuItemId),
+    loadMenuItemAction(requestRpc, requestWfs, db, menuItemId, extent),
   ])
 }
 
 
-function loadMenuTree(request, db, menuItemId) {
+function loadMenuTree(requestRpc, requestWfs, db, menuItemId, extent) {
   return Promise.all([
-    loadMenuItem(request, db, menuItemId),
-    getMenuChildren(request, menuItemId).then(menuItems => {
-      return Promise.all(menuItems.map(menuItem => loadMenuTree(request, db, menuItem)))
+    loadMenuItem(requestRpc, requestWfs, db, menuItemId, extent),
+    getMenuChildren(requestRpc, menuItemId).then(menuItems => {
+      return Promise.all(menuItems.map(menuItem => loadMenuTree(requestRpc, requestWfs, db, menuItem, extent)))
     }),
   ])
 }
