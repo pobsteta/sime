@@ -8,7 +8,7 @@
     "dev": "watchify boot.js -o dev/bundle.js -dv -t babelify",
     "bundle": "browserify boot.js | uglifyjs -mc > dev/bundle.js",
     "html": "npm run bundle && html-inline dev/index.html > dev/app.html",
-    "build": "browserify boot.js | uglifyjs -mc > cordova/project/www/app.js"
+    "build": "browserify boot.js -t babelify | uglifyjs -mc > cordova/project/www/app.js"
   },
   "author": "KaeS",
   "license": "ISC",

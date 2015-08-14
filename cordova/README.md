@@ -9,7 +9,7 @@ Explications détaillées
 Créer le projet:
 
     # à partir de /cordova :
-    cordova create project fr.bef.tryton "Tryton Mobile" --copy-from=../www
+    cordova create project fr.bef.tryton "Tryton Mobile" --copy-from=www
 
 Copier le fichier config.xml (à faire avant d'ajouter une plateforme) :
 
@@ -24,6 +24,7 @@ Puis configurer le projet :
     cd project/
 
     cordova plugin add cordova-plugin-whitelist
+    cordova plugin add https://github.com/ffournier/cordova-plugin-mbtiles.git
     cordova platform add android
 
 Déploiement
