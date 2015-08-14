@@ -6,8 +6,8 @@ var _ContentDelegate = require('absolute/_ContentDelegate');
 import _Destroyable from 'ksf/base/_Destroyable'
 var Switch = require('absolute/Switch');
 
-var OnlineApp = require('./ConnectionView')
-var OfflineApp = require('./OfflineView')
+var localRequest = require('./utils/LocalRequest')
+var ConnectionView = require('./ConnectionView')
 
 export default compose(_ContentDelegate, _Destroyable, function(args) {
 
@@ -18,12 +18,15 @@ export default compose(_ContentDelegate, _Destroyable, function(args) {
   this._own(bindValueDestroyable(online, onlineValue => {
     var view
 		if (onlineValue) {
-      view = new OnlineApp(create(args, {
+      view = new ConnectionView(create(args, {
         goOffline: online.value.bind(online, false),
+				menuItemId: null,
       }))
     } else {
-      view = new OfflineApp(create (args, {
+      view = new ConnectionView(create (args, {
         goOnline: online.value.bind(online, true),
+				request: localRequest(args.localDb),
+				menuItemId: 132,
       }))
     }
     this._content.content(view)

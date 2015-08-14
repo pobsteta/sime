@@ -30,6 +30,7 @@ function displayMenu (args) {
 				args.container.content(args.previous, 'right');
 			}), 10).height(args.defaultButtonSize+20));
 		}
+
 		res.forEach(function(childMenuItemId) {
 			var menuItemLabel = new Value(childMenuItemId + '');
 			var menuItem = new HFlex([
@@ -51,10 +52,10 @@ function displayMenu (args) {
 										"tree_open",
 										["ir.ui.menu", childMenuItemId],
 									],
-								}).then(function(res) {
-									if (res.length) {
+								}).then(function(resp) {
+									if (resp.length) {
 										message.value('');
-										var views = res[0].views;
+										var views = resp[0].views;
 										var viewId;
 										var formViewId;
 										for (var i=0; i<views.length; i++) {
@@ -66,7 +67,7 @@ function displayMenu (args) {
 												formViewId = view[0];
 											}
 										}
-										var modelId = res[0]["res_model"];
+										var modelId = resp[0]["res_model"];
 										args.onDisplayModel(modelId, viewId, formViewId);
 									} else {
 										message.value('no list view');
@@ -84,23 +85,25 @@ function displayMenu (args) {
 				]),
 			]).height(args.defaultButtonSize);
 			menuContainer.add(childMenuItemId+'', menuItem);
+
 			request({
 				"method": "model.ir.ui.menu.read",
 				"params": [
 					[childMenuItemId],
 					["childs", "name", "parent", "favorite", "active", "icon", "parent.rec_name", "rec_name", "_timestamp"],
 				],
-			}).then(function(res) {
-				menuItemLabel.value(res[0].name);
+			}).then(function(resp) {
+				menuItemLabel.value(resp[0].name);
 			}, function() {
 				console.log("error retreiving label for", childMenuItemId);
 			});
+
 		});
 		message.value('done');
 	}, function(err) {
 		message.value("erreur");
 		console.log("erreur", err);
-	}).done();
+	})
 }
 
 

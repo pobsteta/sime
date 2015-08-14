@@ -1,13 +1,41 @@
 import getQgsFile from './getQgsFile'
 import getMenuChildren from './getMenuChildren'
 
+const searchLimit = 100
+
 function first (array) {
   return array.length ? array[0] : null
 }
+
 function get (prop) {
   return function (obj) {
     return obj && obj[prop]
   }
+}
+
+
+// helpers sublevel
+function sublevel(db, prefix) {
+  return {db: db, prefix: prefix+'/'}
+}
+function put(db, key, value) {
+  return db.put ? db.put(key, value) : put(db.db, db.prefix+key, value)
+}
+function del(db, key) {
+  return db.del ? db.del(key) : del(db.db, db.prefix+key)
+}
+function batch(db, ops) {
+  return db.batch ? db.batch(ops) : batch(db.db, ops.map(op => {
+    op.key = db.prefix+op.key
+    return op
+  }))
+}
+
+// remplace le contenu de la db par les items
+function storeItems (db, items) {
+    return batch(db, items.map(item => {
+      return {type: 'put', key: item.id, value: item}
+    }))
 }
 
 function getActionFromMenuItem (request, menuItemId) {
@@ -22,16 +50,6 @@ function getActionFromMenuItem (request, menuItemId) {
   )
 }
 
-
-// remplace le contenu de la db par les items
-function storeItems (db, items) {
-  //return clearDb(db).then(() => {
-    return db.batch(items.map(item => {
-      return {type: 'put', key: item.id, value: item}
-    }))
-  //})
-}
-
 function loadGeoItems(request, db, modelId) {
   console.log('fake loading of geo items for model '+modelId)
   return Promise.resolve(true)
@@ -41,27 +59,41 @@ function loadNonGeoItems (request, db, modelId) {
   return request({method: 'model.'+modelId+'.search_read', params: [
     [], // all items
     0,
-    1000, // limit
+    searchLimit, // limit
     null,
     [], // all fields
   ]}).then(items => storeItems(db, items))
 }
 
+function getViewDef(request, modelId, viewId) {
+  return request({method: 'model.'+modelId+'.fields_view_get', params: [
+    viewId,
+    null,
+  ]})
+}
+
 
 function loadViews(request, db, modelId) {
-  return request({method: 'model.ir.ui.view.search_read', params: [
+  return request({method: 'model.ir.ui.view.search', params: [
     [["model", "=", modelId]],
 		0,
-		100,
+		searchLimit,
 		null,
 		[],
-  ]}).then(views => storeItems(db, views))
+  ]}).then(viewIds =>
+    Promise.all(viewIds.map(viewId =>
+      getViewDef(request, modelId, viewId)
+    )).then(viewDefs => viewDefs.map(viewDef => {
+      viewDef.id = viewDef['view_id']
+      return viewDef
+    })).then(viewDefs => storeItems(db, viewDefs))
+  )
 }
 
 function loadModelDefaultValue(request, db, modelId, props) {
   request({method: 'model.'+modelId+'.default_get', params: [
 			props,
-		]}).then(defaultValue => db.put('defaultValue', defaultValue))
+		]}).then(defaultValue => put(db, 'defaultValue', defaultValue))
 }
 
 function getModelDef(request, modelId) {
@@ -83,30 +115,30 @@ function getModelFields(request, modelDbId) {
   return request({method: 'model.ir.model.field.search_read', params: [
     [["model", "=", modelDbId]],
 		0,
-		100,
+		searchLimit,
 		null,
 		[],
   ]})
 }
 
 function loadModel (request, modelsDb, modelId) {
-  var db = modelsDb.sublevel(modelId)
+  var db = sublevel(modelsDb, modelId)
   return Promise.all([
-    loadViews(request, db.sublevel('views'), modelId),
+    loadViews(request, sublevel(db, 'views'), modelId),
     getModelDef(request, modelId).then(modelDef => Promise.all([
-      db.put('modelDef', modelDef),
+      put(db, 'modelDef', modelDef),
       loadModelDefaultValue(request, db, modelId, modelDef.fields.map(get('name'))),
     ])),
     getQgsFile(request, modelId).then(qgsFile => {
       if (qgsFile) {
         return Promise.all([
-          db.put('qgsFile', qgsFile),
-          loadGeoItems(request, db.sublevel('items'), modelId),
+          put(db, 'qgsFile', qgsFile),
+          loadGeoItems(request, sublevel(db, 'items'), modelId),
         ])
       } else {
         return Promise.all([
-          db.del('qgsFile'), // be sure to remove existing file if any
-          loadNonGeoItems(request, db.sublevel('items'), modelId),
+          del(db, 'qgsFile'), // be sure to remove existing file if any
+          loadNonGeoItems(request, sublevel(db, 'items'), modelId),
         ])
       }
     }),
@@ -119,8 +151,8 @@ function loadMenuItemAction(request, db, menuItemId) {
     if (action) {
       var modelId = action['res_model']
       return Promise.all([
-        db.sublevel('menuItemActions').put(menuItemId, action),
-        loadModel(request, db.sublevel('models'), modelId),
+        put(db, 'menuItemActions/'+menuItemId, action),
+        loadModel(request, sublevel(db, 'models'), modelId),
       ])
     } else {
       return Promise.resolve(true)
@@ -137,13 +169,13 @@ function getMenuItemValue (request, menuItemId) {
 
 function loadMenuItemValue(request, db, menuItemId) {
   return getMenuItemValue(request, menuItemId).then(menuItemValue =>
-    db.put(menuItemId, menuItemValue)
+    put(db, menuItemId, menuItemValue)
   )
 }
 
 function loadMenuItem(request, db, menuItemId) {
   return Promise.all([
-    loadMenuItemValue(request, db.sublevel('menuItemValues'), menuItemId),
+    loadMenuItemValue(request, sublevel(db, 'menuItemValues'), menuItemId),
     loadMenuItemAction(request, db, menuItemId),
   ])
 }

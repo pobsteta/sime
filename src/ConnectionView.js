@@ -15,8 +15,6 @@ var Menu = require('./Menu');
 var Saver = require('./utils/Saver');
 var SidePanelContainer = require('./SidePanelContainer');
 
-var sublevel = require('sublevel')
-var levelPromise = require('level-promise')
 var clearDb = require('./utils/clearDb')
 var download = require('./utils/download')
 
@@ -32,27 +30,30 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	var self = this
 	var session = args.session
 
-	this._own(bindValue(session, function(sessionToken) {
-		if (!sessionToken) {
-			var passwordInput;
-			var authenticationMessage = new Label();
-			args.modal(new VPile().width(200).content([
-				passwordInput = new LabelInput().placeholder("password").height(30),
-				new Button().value("OK").height(30).onAction(function() {
-					authenticationMessage.value('authenticating...');
-					var pwd = passwordInput.value();
-					trytonLogin(args.connectionValue, session, pwd).then(function() {
-						authenticationMessage.value('authenticated');
-						args.modal(null);
-						args.passwordValue.value(pwd);
-					}, function() {
-						authenticationMessage.value('authentication error');
-					});
-				}),
-				authenticationMessage.height(30),
-			]))
-		}
-	}))
+	if (args.goOffline) {
+		this._own(bindValue(session, function(sessionToken) {
+			if (!sessionToken) {
+				var passwordInput;
+				var authenticationMessage = new Label();
+				args.modal(new VPile().width(200).content([
+					passwordInput = new LabelInput().placeholder("password").height(30),
+					new Button().value("OK").height(30).onAction(function() {
+						authenticationMessage.value('authenticating...');
+						var pwd = passwordInput.value();
+						trytonLogin(args.connectionValue, session, pwd).then(function() {
+							authenticationMessage.value('authenticated');
+							args.modal(null);
+							args.passwordValue.value(pwd);
+						}, function() {
+							authenticationMessage.value('authentication error');
+						});
+					}),
+					authenticationMessage.height(30),
+				]))
+			}
+		}))
+
+	}
 
 	var commonArgs = create(args, {
 		changes: {
@@ -80,17 +81,17 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 				})).width(300),
 				[new Button().value("Télécharger").onAction(function () {
 					message.value("Téléchargement des données en cours...")
-					var rawDb = args.localDb
-					clearDb(rawDb).then(() => {
-					  var db = sublevel(rawDb)
-					  levelPromise(db)
-					  download(args.request, db, 132).then(
+					var db = args.localDb
+					clearDb(db).then(() => {
+						download(args.request, db, 132).then(
 							message.value.bind(message, "Téléchargement terminé"),
 							message.value.bind(message, "Erreur lors du téléchargement")
 						)
 					})
 				}).height(args.defaultButtonSize), 'fixed'],
-				[new Button().value("Passer hors ligne").onAction(args.goOffline).height(args.defaultButtonSize), 'fixed'],
+				args.goOffline ?
+					[new Button().value("Passer hors ligne").onAction(args.goOffline).height(args.defaultButtonSize), 'fixed']:
+					[new Button().value("Passer en ligne").onAction(args.goOnline).height(args.defaultButtonSize), 'fixed'],
 				[message.height(30), 'fixed'],
 			]),
 		options: {
