@@ -7,7 +7,7 @@ function unprefix(key, prefix) {
   return key.slice(prefix.length)
 }
 
-function search(db, prefix, params) {
+function search(db, prefix, params, readOption) {
   var query = params[0]
   if (Array.isArray(query[0])) {
     query = query[0]
@@ -16,14 +16,14 @@ function search(db, prefix, params) {
   var queryOperand = query[2]
   return new Promise((resolve, reject) => {
     var result = []
-    db.createReadStream({
+    db.createValueStream({
       gte: prefix,
       lte: prefix+'\uffff',
       limit: searchLimit,
     })
-      .on('data', function(pair) {
-          if (get(pair.value, queryProp) === queryOperand) {
-            result.push(parseInt(unprefix(pair.key, prefix), 10))
+      .on('data', function(value) {
+          if (get(value, queryProp) === queryOperand) {
+            result.push(readOption ? value : get(value, 'id'))
           }
       })
       .on('error', reject)
@@ -58,11 +58,14 @@ function modelRequest(db, path, params) {
   var prefix = 'models/'+modelId+'/'
   switch (method) {
     case 'fields_view_get':
-      var viewId = params[0]
+      var viewId = params[0] || params[1]
       return db.get(prefix+'views/'+viewId)
       break;
     case 'search':
       return search(db, prefix+'items/', params)
+      break;
+    case 'search_read':
+      return search(db, prefix+'items/', params, true)
       break;
     case 'read':
       return read(db, prefix+'items/', params)
@@ -144,12 +147,12 @@ function irRequest(db, path, params) {
     case 'action.keyword':
       return actionRequest(db, method, params)
       break;
-      case 'model':
-        return irModelRequest(db, method, params)
-      case 'model.field':
-        return irModelFieldRequest(db, method, params)
-      case 'attachment':
-        return attachmentRequest(db, method, params)
+    case 'model':
+      return irModelRequest(db, method, params)
+    case 'model.field':
+      return irModelFieldRequest(db, method, params)
+    case 'attachment':
+      return attachmentRequest(db, method, params)
     default:
       console.warn("localRequest not implemented", path, method, params)
       return Promise.reject("Not implemented")

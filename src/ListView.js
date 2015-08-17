@@ -19,7 +19,7 @@ var Margin = require('absolute/Margin');
 var Background = require('absolute/Background');
 var Clickable = require('absolute/Clickable');
 
-var getFieldIdsToRequest = require('./getFieldIdsToRequest');
+var getFieldIdsToRequest = require('./utils/getFieldIdsToRequest');
 var createFieldDisplayer = require('./fieldDisplayer')
 var getFieldsFromView = require('./utils/getFieldsFromView')
 

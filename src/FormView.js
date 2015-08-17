@@ -12,16 +12,14 @@ var VFlex = require('absolute/VFlex');
 var HFlex = require('absolute/HFlex');
 var VPile = require('absolute/VPile');
 var VScroll = require('absolute/VScroll');
-var Margin = require('absolute/Margin');
 var Switch = require('absolute/Switch');
 var Align = require('absolute/Align');
 var Button = require('absolute/Button');
 var Space = require('absolute/Space');
 
 var createFieldEditor = require('./fieldEditor')
-var createFieldDisplayer = require('./fieldDisplayer')
 
-var getFieldIdsToRequest = require('./getFieldIdsToRequest');
+var getFieldIdsToRequest = require('./utils/getFieldIdsToRequest');
 var getFieldsFromView = require('./utils/getFieldsFromView')
 
 

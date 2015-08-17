@@ -1,6 +1,8 @@
+import assign from 'lodash/object/assign'
+import ol from 'openlayers'
 import getQgsFile from './getQgsFile'
 import getMenuChildren from './getMenuChildren'
-import ol from 'openlayers'
+import getFieldIdsToRequest from './getFieldIdsToRequest'
 
 // set a limit to prevent accidental huge requests
 const resultsLimit = 100;
@@ -53,7 +55,7 @@ function getActionFromMenuItem(requestRpc, menuItemId) {
   )
 }
 
-function loadGeoItems(requestRpc, requestWfs, db, modelId, extent) {
+function loadGeoItems(requestRpc, requestWfs, db, modelId, extent, fieldNames) {
   var gml2Format = new ol.format.GML2({
 		featureNS: { tryton: 'http://www.tryton.org/' },
 		featureType: 'tryton:' + modelId,
@@ -73,26 +75,29 @@ function loadGeoItems(requestRpc, requestWfs, db, modelId, extent) {
         resultsLimit,
       ]}).then(idsWithNoGeom => requestRpc({method: 'model.' + modelId + '.read', params: [
           idsInExtent.concat(idsWithNoGeom),
-          [], // all fields
+          fieldNames,
         ]}).then(items => storeItems(db, items)))
   })
 }
 
-function loadNonGeoItems (requestRpc, db, modelId) {
+function loadNonGeoItems (requestRpc, db, modelId, fieldNames) {
   return requestRpc({method: 'model.'+modelId+'.search_read', params: [
     [], // all items
     0,
     resultsLimit, // limit
     null,
-    [], // all fields
+    fieldNames,
   ]}).then(items => storeItems(db, items))
 }
 
 function getViewDef(request, modelId, viewId) {
-  return request({method: 'model.'+modelId+'.fields_view_get', params: [
-    viewId,
-    null,
-  ]})
+  var params
+  if (viewId === 'tree' || viewId === 'form') {
+    params = [null, viewId]
+  } else {
+    params = [viewId, null]
+  }
+  return request({method: 'model.'+modelId+'.fields_view_get', params: params})
 }
 
 
@@ -103,13 +108,14 @@ function loadViews(requestRpc, db, modelId) {
 		resultsLimit,
 		null,
 		[],
-  ]}).then(viewIds =>
+  ]}).then(viewIds => viewIds.concat(['tree', 'form'])).then(viewIds =>
     Promise.all(viewIds.map(viewId =>
       getViewDef(requestRpc, modelId, viewId)
-    )).then(viewDefs => viewDefs.map(viewDef => {
-      viewDef.id = viewDef['view_id']
-      return viewDef
-    })).then(viewDefs => storeItems(db, viewDefs))
+    )).then(function (viewDefs) {
+      return storeItems(db, viewIds.map(function (viewId, i) {
+        return assign(viewDefs[i], {id: viewId})
+      }))
+    })
   )
 }
 
@@ -152,20 +158,21 @@ function loadModel (requestRpc, requestWfs, modelsDb, modelId, extent) {
       put(db, 'modelDef', modelDef),
       put(modelsDb, 'dbIds/'+modelDef.id, modelId), // index modelDbId > modelId
       loadModelDefaultValue(requestRpc, db, modelId, modelDef.fields.map(get('name'))),
+      getQgsFile(requestRpc, modelId).then(qgsFile => {
+        var fieldNames = getFieldIdsToRequest(modelDef.fields)
+        if (qgsFile) {
+          return Promise.all([
+            put(db, 'qgsFile', window.btoa(qgsFile)),
+            loadGeoItems(requestRpc, requestWfs, sublevel(db, 'items'), modelId, extent, fieldNames),
+          ])
+        } else {
+          return Promise.all([
+            del(db, 'qgsFile'), // be sure to remove existing file if any
+            loadNonGeoItems(requestRpc, sublevel(db, 'items'), modelId, fieldNames),
+          ])
+        }
+      }),
     ])),
-    getQgsFile(requestRpc, modelId).then(qgsFile => {
-      if (qgsFile) {
-        return Promise.all([
-          put(db, 'qgsFile', window.btoa(qgsFile)),
-          loadGeoItems(requestRpc, requestWfs, sublevel(db, 'items'), modelId, extent),
-        ])
-      } else {
-        return Promise.all([
-          del(db, 'qgsFile'), // be sure to remove existing file if any
-          loadNonGeoItems(requestRpc, sublevel(db, 'items'), modelId),
-        ])
-      }
-    }),
   ])
 }
 
