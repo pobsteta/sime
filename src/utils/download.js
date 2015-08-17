@@ -150,12 +150,13 @@ function loadModel (requestRpc, requestWfs, modelsDb, modelId, extent) {
     loadViews(requestRpc, sublevel(db, 'views'), modelId),
     getModelDef(requestRpc, modelId).then(modelDef => Promise.all([
       put(db, 'modelDef', modelDef),
+      put(modelsDb, 'dbIds/'+modelDef.id, modelId), // index modelDbId > modelId
       loadModelDefaultValue(requestRpc, db, modelId, modelDef.fields.map(get('name'))),
     ])),
     getQgsFile(requestRpc, modelId).then(qgsFile => {
       if (qgsFile) {
         return Promise.all([
-          put(db, 'qgsFile', qgsFile),
+          put(db, 'qgsFile', window.btoa(qgsFile)),
           loadGeoItems(requestRpc, requestWfs, sublevel(db, 'items'), modelId, extent),
         ])
       } else {

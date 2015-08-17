@@ -1,4 +1,5 @@
 import get from 'lodash/object/get'
+import find from 'lodash/collection/find'
 
 const searchLimit = 1000
 
@@ -46,6 +47,7 @@ function menuRequest(db, method, params) {
       return read(db, prefix, params)
       break;
     default:
+      console.warn("localRequest not implemented", method, params)
       return Promise.reject("Not implemented")
   }
 }
@@ -66,7 +68,57 @@ function modelRequest(db, path, params) {
       return read(db, prefix+'items/', params)
       break;
     default:
+      console.warn("localRequest not implemented", path, params)
       return Promise.reject("Not implemented: "+method)
+  }
+}
+
+function irModelRequest(db, method, params) {
+  switch (method) {
+    case 'search':
+      // ne fait pas un vrai search mais supporte uniquement le cas où on cherche le dbId à partir de l'id
+      var modelId = params[0][0][2]
+      var path = 'models/'+modelId+'/modelDef'
+      return db.get(path).then(modelDef => [modelDef.id])
+      break;
+    default:
+      console.warn("irModelRequest not implemented", method, params)
+      return Promise.reject("Not implemented")
+  }
+}
+
+function irModelFieldRequest(db, method, params) {
+  switch (method) {
+    case 'search_read':
+      var modelId = params[0][0][2]
+      var fieldName = 'geom'
+      return db.get('models/'+modelId+'/modelDef').then(modelDef =>
+        [find(modelDef.fields, {name: fieldName})]
+      )
+      break;
+    default:
+      console.warn("irModelRequest not implemented", method, params)
+      return Promise.reject("Not implemented")
+  }
+}
+
+function attachmentRequest(db, method, params) {
+  switch (method) {
+    case 'search_read':
+      // ne supporte que la récupération du qgsFile
+      var modelDbId = params[0][0][2].split(',')[1]
+      return db.get('models/dbIds/'+modelDbId).then(modelId =>
+        db.get('models/'+modelId+'/qgsFile')
+      ).then(qgsFile => [{
+          name: 'qgsFileFakeName.qgs',
+          data: {
+            base64: qgsFile,
+          },
+      }])
+      break;
+    default:
+      console.warn("attachmentRequest not implemented", method, params)
+      return Promise.reject("Not implemented")
   }
 }
 
@@ -78,6 +130,7 @@ function actionRequest(db, method, params) {
       return read(db, 'menuItemActions/', [[menuItemId]])
       break;
     default:
+      console.warn("localRequest not implemented", method, params)
       return Promise.reject("Not implemented")
   }
 }
@@ -91,7 +144,14 @@ function irRequest(db, path, params) {
     case 'action.keyword':
       return actionRequest(db, method, params)
       break;
+      case 'model':
+        return irModelRequest(db, method, params)
+      case 'model.field':
+        return irModelFieldRequest(db, method, params)
+      case 'attachment':
+        return attachmentRequest(db, method, params)
     default:
+      console.warn("localRequest not implemented", path, method, params)
       return Promise.reject("Not implemented")
   }
 }

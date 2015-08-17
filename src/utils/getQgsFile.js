@@ -2,6 +2,9 @@ var find = require('lodash/collection/find');
 var endsWith = require('lodash/string/endsWith');
 
 function isGeoModel (request, modelId) {
+}
+
+function getQgsFile(request, modelId) {
 	return request({method: 'model.ir.model.search', params: [
 		[['model', '=', modelId]],
 		0,
@@ -14,27 +17,13 @@ function isGeoModel (request, modelId) {
 			0,
 			100,
 			null,
-			['id', 'name'],
+			['id', 'name', 'data'],
 		]})
 	}).then(function(attachments){
 		var found = find(attachments, function(attachment) {
 			return endsWith(attachment.name, '.qgs')
 		});
-		return found ? found.id : null
-	})
-}
-
-function getQgsFile(request, modelId) {
-	return isGeoModel(request, modelId).then(function(attachmentId){
-		return request({
-			method: 'model.ir.attachment.read',
-			params: [
-				[attachmentId],
-				['data'],
-			],
-		})
-	}).then(function(res){
-		return window.atob(res[0].data.base64)
+		return window.atob(found.data.base64)
 	}).catch(function(){
 		return null;
 	});
