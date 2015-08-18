@@ -8,7 +8,7 @@ var ol = require('openlayers');
 // var ol = require('openlayers/dist/ol-debug');
 var HPile = require('absolute/HPile');
 var ZPile = require('absolute/ZPile');
-var Elmt = require('absolute/Element');
+var Align = require('absolute/Align');
 
 var when = require('when');
 
@@ -21,17 +21,19 @@ var geomTypeMapping = {
 	multipoint: 'Point',
 };
 
+import MapBase from './MapBase'
+
 var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 	this._args = args;
 	this._content = new ZPile().content([
-		this._mapEl = new Elmt(),
-		new HPile().content([
+		this._map = new MapBase(),
+		new Align(new HPile().content([
 			this._centerBtn = new Button().value("Centrer sur la géométrie").onAction(this._centerActive.bind(this)).width(100).visible(false),
 			this._editBtn = new Button().value("Editer la géométrie").onAction(this._toggleEdit.bind(this)).width(100).visible(false),
 			this._addPartBtn = new Button().value("Ajouter une partie").onAction(this._addGeomPart.bind(this)).width(100).visible(false),
 			this._removePartBtn = new Button().value("Supprimer une partie").onAction(this._removeGeomPart.bind(this)).width(100).visible(false),
 			this._saveBtn = new Button().value("Enregistrer la géométrie").onAction(this._saveGeom.bind(this)).width(100).visible(false),
-		]),
+		]).height(args.defaultButtonSize), 'left', 'top'),
 	]);
 
 	var gml2Format = new ol.format.GML2({
@@ -119,59 +121,52 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 		baseLayer.setSource(new ol.source.MapQuest({layer: 'osm'}));
 	}
 
-	this.olMap = new ol.Map({
-		view: new ol.View({
-			center: ol.proj.transform([660493.0, 6857760.7], 'EPSG:2154', 'EPSG:3857'),
-			zoom: 15,
+	this.olMap = this._map.olMap;
+	this.olMap.getLayers().extend([
+		this._mainLayer = new ol.layer.Vector({
+			source: wfsSource,
+			// style: new ol.style.Style({
+			//   stroke: new ol.style.Stroke({
+			//     color: 'rgba(0, 0, 255, 1.0)',
+			//     width: 2
+			//   })
+			// })
 		}),
-		layers: [
-			baseLayer,
-			this._mainLayer = new ol.layer.Vector({
-				source: wfsSource,
-				// style: new ol.style.Style({
-				//   stroke: new ol.style.Stroke({
-				//     color: 'rgba(0, 0, 255, 1.0)',
-				//     width: 2
-				//   })
-				// })
-			}),
-			this._editingLayer = new ol.layer.Vector({
-				source: this._editingSource = new ol.source.Vector(),
-				style: [
-					new ol.style.Style({
-						image: new ol.style.Circle({
-							stroke: new ol.style.Stroke({
-								color: 'rgba(250, 170, 0, 1.0)',
-								width: 4,
-							}),
-							radius: 5,
-						}),
+		this._editingLayer = new ol.layer.Vector({
+			source: this._editingSource = new ol.source.Vector(),
+			style: [
+				new ol.style.Style({
+					image: new ol.style.Circle({
 						stroke: new ol.style.Stroke({
 							color: 'rgba(250, 170, 0, 1.0)',
 							width: 4,
 						}),
-						fill: new ol.style.Fill({
-							color: 'rgba(255, 255, 0, 0.3)',
-						})
+						radius: 5,
 					}),
-					// new ol.style.Style({
-					//   image: new ol.style.Circle({
-					//     radius: 2,
-					//     fill: new ol.style.Fill({
-					//       color: 'white'
-					//     })
-					//   }),
-					//   geometry: function(feature) {
-					//     // return the coordinates of the first ring of the polygon
-					//     var coordinates = feature.getGeometry().getCoordinates()[0];
-					//     return new ol.geom.MultiPoint(coordinates);
-					//   }
-					// })
-				]
-			})
-		],
-		target: this._mapEl.domNode,
-	});
+					stroke: new ol.style.Stroke({
+						color: 'rgba(250, 170, 0, 1.0)',
+						width: 4,
+					}),
+					fill: new ol.style.Fill({
+						color: 'rgba(255, 255, 0, 0.3)',
+					}),
+				}),
+				// new ol.style.Style({
+				//   image: new ol.style.Circle({
+				//     radius: 2,
+				//     fill: new ol.style.Fill({
+				//       color: 'white'
+				//     })
+				//   }),
+				//   geometry: function(feature) {
+				//     // return the coordinates of the first ring of the polygon
+				//     var coordinates = feature.getGeometry().getCoordinates()[0];
+				//     return new ol.geom.MultiPoint(coordinates);
+				//   }
+				// })
+			],
+		}),
+	]);
 
 	this.olMap.addInteraction(this._itemSelectTool = new ol.interaction.Select({
 		layers: [this._mainLayer],
@@ -267,7 +262,7 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 
 		this._partDrawTool = new ol.interaction.Draw({
 			source: this._editingSource,
-			type: this._geomType
+			type: this._geomType,
 		});
 		this._partDrawTool.on('drawend', function() {
 			this.olMap.removeInteraction(this._partDrawTool);
@@ -320,29 +315,6 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 				});
 			}
 		});
-	},
-	_updateSize: function() {
-		var w = this._mapEl.width(),
-		h = this._mapEl.height();
-		if (w & h) {
-			this.olMap.setSize([w, h]);
-		}
-	},
-	height: function(h) {
-		if (arguments.length) {
-			this._mapEl.height(h);
-			this._updateSize();
-		} else {
-			return this._mapEl.height();
-		}
-	},
-	width: function(w) {
-		if (arguments.length) {
-			this._mapEl.width(w);
-			this._updateSize();
-		} else {
-			return this._mapEl.width();
-		}
 	},
 	_toggleEdit: function() {
 		if (this._editMode) {

@@ -11,9 +11,12 @@ var ConnectionView = require('./ConnectionView')
 
 export default compose(_ContentDelegate, _Destroyable, function(args) {
 
-	var online = new PersistableValue('online', true); // true or false
+	var online = new PersistableValue('online', true) // true or false
+	var offlineMenuItemId = new PersistableValue('offlineMenuItemId', null)
+	var offlineExtent = new PersistableValue('offlineExtent', null)
 
 	this._content = new Switch()
+
 
   this._own(bindValueDestroyable(online, onlineValue => {
     var view
@@ -21,12 +24,16 @@ export default compose(_ContentDelegate, _Destroyable, function(args) {
       view = new ConnectionView(create(args, {
         goOffline: online.value.bind(online, false),
 				menuItemId: null,
+				offlineMenuItemId: offlineMenuItemId,
+				offlineExtent: offlineExtent,
       }))
     } else {
       view = new ConnectionView(create (args, {
         goOnline: online.value.bind(online, true),
 				request: localRequest(args.localDb),
-				menuItemId: 132,
+				menuItemId: offlineMenuItemId.value(),
+				offlineMenuItemId: offlineMenuItemId,
+				offlineExtent: offlineExtent,
       }))
     }
     this._content.content(view)

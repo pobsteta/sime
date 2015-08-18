@@ -4,6 +4,7 @@ var bindValue = require('ksf/observable/bindValue');
 var create = require('lodash/object/create');
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var VFlex = require('absolute/VFlex');
+var HFlex = require('absolute/HFlex');
 var Switch = require('absolute/Switch');
 var Label = require('absolute/Label');
 var Button = require('absolute/Button');
@@ -15,10 +16,9 @@ var Menu = require('./Menu');
 var Saver = require('./utils/Saver');
 var SidePanelContainer = require('./SidePanelContainer');
 
-var clearDb = require('./utils/clearDb')
-var download = require('./utils/download')
-
 import trytonLogin from './utils/trytonLogin'
+
+import OfflineDashboard from './OfflineDashboard'
 
 /**
 Vue qui affiche le menu et une zone principale
@@ -66,7 +66,6 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	var message = new Label();
 	var panelContainer = this._content = new SidePanelContainer({
 		panel: new VFlex([
-				[new Button().value("logout").onAction(args.logout).height(30), 'fixed'],
 				this._menu = new Menu(create(commonArgs, {
 					onDisplayModel: function(modelId, listViewId, formViewId) {
 						mainArea.content(self._own(new ModelView(create(commonArgs, {
@@ -79,22 +78,19 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 					},
 					message: message,
 				})).width(300),
-				[new Button().value("Télécharger").onAction(function () {
-					message.value("Téléchargement des données en cours...")
-					var db = args.localDb
-					clearDb(db).then(() => {
-						download(args.request, args.wfsRequest, db,
-							132,  // menuID
-							[273503.64, 6243639.19, 274521.21, 6244408.34]  // extent in EPSG:3857 (Mercator)
-						).then(
-							message.value.bind(message, "Téléchargement terminé"),
-							message.value.bind(message, "Erreur lors du téléchargement")
-						)
-					})
-				}).height(args.defaultButtonSize), 'fixed'],
-				args.goOffline ?
-					[new Button().value("Passer hors ligne").onAction(args.goOffline).height(args.defaultButtonSize), 'fixed']:
-					[new Button().value("Passer en ligne").onAction(args.goOnline).height(args.defaultButtonSize), 'fixed'],
+				[new Button().value("Gestion du mode hors-ligne").onAction(function() {
+						mainArea.content(self._own(new OfflineDashboard(create(commonArgs, {
+							offlineMenuItemId: args.offlineMenuItemId,
+							message: message,
+						})), 'mainView'));
+						panelContainer.focusArea('main');
+					}).height(args.defaultButtonSize), 'fixed'],
+				[new HFlex([
+					args.goOffline ?
+						new Button().value("Passer hors ligne").onAction(args.goOffline):
+						new Button().value("Passer en ligne").onAction(args.goOnline),
+					new Button().value("Déconnexion").onAction(args.logout),
+				]).height(args.defaultButtonSize), 'fixed'],
 				[message.height(30), 'fixed'],
 			]),
 		options: {
