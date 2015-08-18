@@ -30,7 +30,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	var self = this
 	var session = args.session
 
-	if (args.goOffline) {
+	if (args.online) {
 		this._own(bindValue(session, function(sessionToken) {
 			if (!sessionToken) {
 				var passwordInput;
@@ -86,7 +86,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 						panelContainer.focusArea('main');
 					}).height(args.defaultButtonSize), 'fixed'],
 				[new HFlex([
-					args.goOffline ?
+					args.online ?
 						new Button().value("Passer hors ligne").onAction(args.goOffline):
 						new Button().value("Passer en ligne").onAction(args.goOnline),
 					new Button().value("Déconnexion").onAction(args.logout),

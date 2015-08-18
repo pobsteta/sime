@@ -5,20 +5,6 @@ import pick from 'lodash/object/pick'
 
 const searchLimit = 1000
 
-// store a value with an auto-increment
-// TODO: rendre cela vraiment atomique ou utiliser un timestamp
-var counterKey = '__counter__'
-function push(db, prefix, value) {
-  return db.get(counterKey).then(
-    counter => counter,
-    () => 0
-  ).then(function (counter) {
-    return db.batch([
-      {type: 'put', key: counterKey, value: counter+1},
-      {type: 'put', key: prefix+counter, value: value},
-    ]).then(() => counter)
-  })
-}
 
 function searchItems(db, prefix, params, readValue) {
   var query = params[0]
@@ -208,7 +194,7 @@ function irRequest(db, path, params) {
 
 function saveRequest(db, method, request) {
   if (method === 'write' || method === 'delete' || method === 'create') {
-    return db.put('_requests/'+new Date().toISOString(), request)
+    return db.put('_requests/'+new Date().toISOString()+'/request', request)
   } else {
     return Promise.resolve(true)
   }

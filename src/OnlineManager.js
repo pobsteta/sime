@@ -14,26 +14,30 @@ export default compose(_ContentDelegate, _Destroyable, function(args) {
 	var online = new PersistableValue('online', true) // true or false
 	var offlineMenuItemId = new PersistableValue('offlineMenuItemId', null)
 	var offlineExtent = new PersistableValue('offlineExtent', null)
+	var offlineDataTime = new PersistableValue('offlineDataTime', null)
 
 	this._content = new Switch()
 
 
   this._own(bindValueDestroyable(online, onlineValue => {
     var view
+		var commonArgs = create(args, {
+			offlineMenuItemId: offlineMenuItemId,
+			offlineExtent: offlineExtent,
+			offlineDataTime: offlineDataTime,
+		})
 		if (onlineValue) {
-      view = new ConnectionView(create(args, {
+      view = new ConnectionView(create(commonArgs, {
+				online: true,
         goOffline: online.value.bind(online, false),
 				menuItemId: null,
-				offlineMenuItemId: offlineMenuItemId,
-				offlineExtent: offlineExtent,
       }))
     } else {
-      view = new ConnectionView(create (args, {
+      view = new ConnectionView(create (commonArgs, {
+				online: false,
         goOnline: online.value.bind(online, true),
 				request: localRequest(args.localDb),
 				menuItemId: offlineMenuItemId.value(),
-				offlineMenuItemId: offlineMenuItemId,
-				offlineExtent: offlineExtent,
       }))
     }
     this._content.content(view)

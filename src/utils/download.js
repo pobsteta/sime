@@ -3,6 +3,7 @@ import ol from 'openlayers'
 import getQgsFile from './getQgsFile'
 import getMenuChildren from './getMenuChildren'
 import getFieldIdsToRequest from './getFieldIdsToRequest'
+import {sublevel, batch, put, del} from './db'
 
 // set a limit to prevent accidental huge requests
 const resultsLimit = 100;
@@ -17,23 +18,6 @@ function get (prop) {
   }
 }
 
-
-// helpers sublevel
-function sublevel(db, prefix) {
-  return {db: db, prefix: prefix+'/'}
-}
-function put(db, key, value) {
-  return db.put ? db.put(key, value) : put(db.db, db.prefix+key, value)
-}
-function del(db, key) {
-  return db.del ? db.del(key) : del(db.db, db.prefix+key)
-}
-function batch(db, ops) {
-  return db.batch ? db.batch(ops) : batch(db.db, ops.map(op => {
-    op.key = db.prefix+op.key
-    return op
-  }))
-}
 
 // remplace le contenu de la db par les items
 function storeItems (db, items) {
