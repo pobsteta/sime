@@ -1,13 +1,26 @@
+import assign from 'lodash/object/assign'
 import get from 'lodash/object/get'
 import find from 'lodash/collection/find'
+import pick from 'lodash/object/pick'
 
 const searchLimit = 1000
 
-function unprefix(key, prefix) {
-  return key.slice(prefix.length)
+// store a value with an auto-increment
+// TODO: rendre cela vraiment atomique ou utiliser un timestamp
+var counterKey = '__counter__'
+function push(db, prefix, value) {
+  return db.get(counterKey).then(
+    counter => counter,
+    () => 0
+  ).then(function (counter) {
+    return db.batch([
+      {type: 'put', key: counterKey, value: counter+1},
+      {type: 'put', key: prefix+counter, value: value},
+    ]).then(() => counter)
+  })
 }
 
-function search(db, prefix, params, readOption) {
+function searchItems(db, prefix, params, readValue) {
   var query = params[0]
   if (Array.isArray(query[0])) {
     query = query[0]
@@ -23,7 +36,7 @@ function search(db, prefix, params, readOption) {
     })
       .on('data', function(value) {
           if (get(value, queryProp) === queryOperand) {
-            result.push(readOption ? value : get(value, 'id'))
+            result.push(readValue ? value : get(value, 'id'))
           }
       })
       .on('error', reject)
@@ -33,18 +46,40 @@ function search(db, prefix, params, readOption) {
   })
 }
 
-function read(db, prefix, params) {
+function readItems(db, prefix, params) {
   return Promise.all(params[0].map(id => db.get(prefix+id)))
 }
+
+function writeItems(db, prefix, params) {
+  // pour l'instant ça n'écrit qu'un seul item
+  var itemId = params[0][0]
+  return db.get(prefix+itemId).then(itemValue =>
+    db.put(prefix+itemId, assign(itemValue, params[1]))
+  )
+}
+
+function deleteItems(db, prefix, params) {
+  // pour l'instant ça ne supprime qu'un seul item
+  var itemId = params[0][0]
+  return db.del(prefix+itemId)
+}
+
+function createItems(db, prefix, params) {
+  // pour l'instant ça ne crée qu'un seul item
+  var itemValue = params[0][0]
+  var itemId = itemValue.id = new Date().toISOString()
+  return db.put(prefix+itemId, itemValue)
+}
+
 
 function menuRequest(db, method, params) {
   var prefix = 'menuItemValues/'
   switch (method) {
     case 'search':
-      return search(db, prefix, params)
+      return searchItems(db, prefix, params)
       break;
     case 'read':
-      return read(db, prefix, params)
+      return readItems(db, prefix, params)
       break;
     default:
       console.warn("localRequest not implemented", method, params)
@@ -61,14 +96,25 @@ function modelRequest(db, path, params) {
       var viewId = params[0] || params[1]
       return db.get(prefix+'views/'+viewId)
       break;
+    case 'default_get':
+      return db.get(prefix+'defaultValue').then(defaultValue => pick(defaultValue, params[0]))
     case 'search':
-      return search(db, prefix+'items/', params)
+      return searchItems(db, prefix+'items/', params)
       break;
     case 'search_read':
-      return search(db, prefix+'items/', params, true)
+      return searchItems(db, prefix+'items/', params, true)
       break;
     case 'read':
-      return read(db, prefix+'items/', params)
+      return readItems(db, prefix+'items/', params)
+      break;
+    case 'write':
+      return writeItems(db, prefix+'items/', params)
+      break;
+    case 'delete':
+      return deleteItems(db, prefix+'items/', params)
+      break;
+    case 'create':
+      return createItems(db, prefix+'items/', params)
       break;
     default:
       console.warn("localRequest not implemented", path, params)
@@ -130,7 +176,7 @@ function actionRequest(db, method, params) {
   switch (method) {
     case 'get_keyword':
       var menuItemId = params[1][1]
-      return read(db, 'menuItemActions/', [[menuItemId]])
+      return readItems(db, 'menuItemActions/', [[menuItemId]])
       break;
     default:
       console.warn("localRequest not implemented", method, params)
@@ -160,9 +206,18 @@ function irRequest(db, path, params) {
 }
 
 
+function saveRequest(db, method, request) {
+  if (method === 'write' || method === 'delete' || method === 'create') {
+    return db.put('_requests/'+new Date().toISOString(), request)
+  } else {
+    return Promise.resolve(true)
+  }
+}
+
 export default function (db) {
   return function localRequest (args) {
     var path = args.method.split('.').slice(1)
+    var method = path[path.length-1]
     var params = args.params
 
     switch (path[0]) {
@@ -170,7 +225,10 @@ export default function (db) {
         return irRequest(db, path.slice(1), params)
         break;
       default:
-        return modelRequest(db, path, params)
+        return Promise.all([
+          modelRequest(db, path, params),
+          saveRequest(db, method, args),
+        ]).then(resp => resp[0])
     }
   }
 }
