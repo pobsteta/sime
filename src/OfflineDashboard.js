@@ -8,9 +8,13 @@ import VFlex from 'absolute/VFlex'
 import Label from 'absolute/Label'
 import Button from 'absolute/Button'
 import Space from 'absolute/Space'
+import Margin from 'absolute/Margin'
+import Background from 'absolute/Background'
 import Reactive from 'absolute/Reactive'
+import ReactiveOrderedBranch from 'absolute/deep/OrderedBranch'
 import TransformedValue from 'ksf/observable/TransformedValue'
 import MappedValue from 'ksf/observable/MappedValue'
+import Leaf from 'ksf/observable/deep/Leaf'
 
 import download from './utils/download'
 import upload from './utils/upload'
@@ -112,7 +116,7 @@ export default compose(_ContentDelegate, function(args) {
         clearDb(db).then(() => {
           download(args.request, args.wfsRequest, db,
             args.offlineMenuItemId.value(),  // menuID
-            [273503.64, 6243639.19, 274521.21, 6244408.34]  // extent in EPSG:3857 (Mercator)
+            args.offlineExtent.value()  // extent in EPSG:3857 (Mercator)
           ).then(
             args.message.value.bind(args.message, "Téléchargement terminé"),
             args.message.value.bind(args.message, "Erreur lors du téléchargement")
@@ -143,7 +147,58 @@ export default compose(_ContentDelegate, function(args) {
     ]).height(args.defaultButtonSize),
     new HFlex([
       new Space(),
-      [new Button().value("Voir les requêtes en attente").width(200), 'fixed'],
+      [new Button().value("Voir les requêtes en attente").onAction(() => {
+        this._content.content(new VFlex([
+          [new Button().value('retour').onAction(
+            () => this._content.content(dashboard)
+          ).height(args.defaultButtonSize), 'fixed'],
+          [new Space().height(20), 'fixed'],
+          [new Reactive({
+            value: new MappedValue(requestsStore, function () {
+              return requestsStore.keys().length + ' requêtes'
+            }),
+            content: new Label(),
+          }).height(50), 'fixed'],
+          [new HFlex([
+            new Label().value("Requête"),
+            new Label().value("Erreur"),
+            new Label().value("Action"),
+          ]).height(args.defaultButtonSize), 'fixed'],
+          new VScroll(new ReactiveOrderedBranch({
+            value: requestsStore,
+            content: new VPile(),
+            onKeyAdded: (pile, key) => {
+              var req = requestsStore.value()[key+'/request']
+              pile.add(key, new Margin(new Background(new HFlex([
+                new VFlex([
+                  new Label().value(JSON.stringify(req.method)),
+                  new Label().value(JSON.stringify(req.params)),
+                ]),
+                new Reactive({
+                  value: new MappedValue(new Leaf(requestsStore, key+'/lastTry'), val =>
+                    val ? val.time + ' : '+val.response.error : "en attente"
+                  ),
+                  content: new Label(),
+                }),
+                new Margin(new Button().value("Supprimer").onAction(() => {
+                  requestsStore.removeKey(key)
+                }), 5),
+              ])).color('transparent').border('1px solid lightgrey'), 5).height(100))
+            },
+            onKeyRemoved: (pile, key) => {
+              pile.remove(key)
+            },
+          })),
+          [new Button().value("Envoyer maintenant").disabled(!args.online).onAction(function () {
+            args.message.value("Envoi en cours...")
+            upload(requestsStore, args.request).then(
+              ()=>args.message.value("Envoi terminé"),
+              ()=>args.message.value("Echec lors de l'envoi")
+            )
+          }).height(args.defaultButtonSize), 'fixed'],
+
+        ]))
+      }).width(200), 'fixed'],
     ]).height(args.defaultButtonSize),
   ]))
   this._content = new Switch().content(dashboard)
