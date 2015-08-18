@@ -155,12 +155,13 @@ var editFieldFactories = {
 	one2many: function(args) {
 		var field = args.field;
 		var item = args.itemValue;
+		var count = 0
 
-		if (!item[field.name]) {
-			return new Label().value("( 0 )")
+		if (item[field.name]) {
+			count = item[field.name].length
 		}
 
-		return new Button().value('( ' + item[field.name].length + ' )').onAction(function() {
+		return new Button().value('( ' + count + ' )').onAction(function() {
 			var modelId = field.relation;
 			var query = [field['relation_field'], '=', item.id];
 
@@ -172,12 +173,13 @@ var editFieldFactories = {
 	many2many: function(args) {
 		var field = args.field;
 		var item = args.itemValue;
+		var count = 0
 
-		if (!item[field.name]) {
-			return new Label().value("( 0 )")
+		if (item[field.name]) {
+			count = item[field.name].length
 		}
 
-		return new Button().value('( ' + item[field.name].length + ' )').onAction(function() {
+		return new Button().value('( ' + count + ' )').onAction(function() {
 			var modelId = field.relation;
 			var query = [field['relation_field'], '=', item.id];
 
@@ -185,10 +187,6 @@ var editFieldFactories = {
 			args.nextCollection(modelId, query, viewsByType.tree, viewsByType.form);
 		});
 	},
-	// selection
-	// reference
-	// function
-	// property
 };
 module.exports = function createFieldEditor (args) {
 	var field = args.field;
