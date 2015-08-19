@@ -20,6 +20,10 @@ var levelPromise = require('level-promise')
 
 var OnlineManager = require('./OnlineManager');
 
+import ol from 'openlayers'
+var proj4 = window.proj4 = require('proj4');
+proj4.defs("EPSG:2154", "+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
+
 
 // json rpc client
 var jsonRpcRequest = require('./utils/jsonRpcRequest')
@@ -88,17 +92,44 @@ var trytonAuthenticatedInterceptor = interceptor({
 
 var wfsInterceptor = interceptor({
     request: function (request, config) {
-      request.path = config.prefix + request.path;
+      var newRequestArg = {
+        path: config.prefix,
+        modelId: request.params.type,
+      }
+
+      if (request.method === 'getFeature') {
+        newRequestArg.path += 'REQUEST=GetFeature&TYPENAME=tryton:' + request.params.type + '&SRSNAME=EPSG:2154&bbox=' + ol.proj.transformExtent(request.params.bbox, 'EPSG:3857', 'EPSG:2154').join(',') + ''
+        if (request.params.filter) {
+          newRequestArg.path += '&FILTER=%3Cogc%3AFilter%3E%3Cogc%3AOr%3E%3Cogc%3APropertyIsEqualTo%3E%3Cogc%3APropertyName%3E'+ request.params.filter[0] + '%3C%2Fogc%3APropertyName%3E%3Cogc%3ALiteral%3E' + request.params.filter[2] + '%3C%2Fogc%3ALiteral%3E%3C%2Fogc%3APropertyIsEqualTo%3E%3C%2Fogc%3AOr%3E%3C%2Fogc%3AFilter%3E';
+        }
+      }
+      if (request.method === 'transaction') {
+        newRequestArg.method = 'post'
+        // build a feature with only the 'geom' attribute
+        var updatedFeature = new ol.Feature({
+          geom: request.params.geom && request.params.geom.clone().transform('EPSG:3857', 'EPSG:2154'),
+        });
+        var fid = request.params.type + '.' + request.params.itemId;
+        updatedFeature.setId(fid);
+
+        newRequestArg.entity = new ol.format.WFS().writeTransaction(null, [updatedFeature], null, {
+          featureNS: 'http://www.tryton.org/',
+          featureType: request.params.type,
+          featurePrefix: 'tryton',
+          gmlOptions: { srsName: 'EPSG:2154' },
+        });
+      }
+
       var pwd = config.passwordR.value();
       if (pwd) {
-        request.password = pwd;
-        return request;
+        newRequestArg.password = pwd;
+        return newRequestArg;
       } else {
         return when.promise(function(resolve) {
           var cancel = config.passwordR.onChange(function(pwdValue) {
             cancel();
-            request.password = pwdValue;
-            resolve(request);
+            newRequestArg.password = pwdValue;
+            resolve(newRequestArg);
           });
         });
       }
@@ -107,7 +138,19 @@ var wfsInterceptor = interceptor({
 			if (response.entity.firstChild.nodeName === "ServiceExceptionReport") {
 				return when.reject(response);
 			}
-      return response;
+
+      if (response.request.method === 'GET') {
+        var gml2Format = new ol.format.GML2({
+          featureNS: { tryton: 'http://www.tryton.org/' },
+          featureType: 'tryton:' + response.request.modelId,
+        });
+        return gml2Format.readFeatures(response.entity, {
+          dataProjection: 'EPSG:2154',
+          featureProjection: 'EPSG:3857',
+        })
+      } else {
+        return response
+      }
     },
 });
 

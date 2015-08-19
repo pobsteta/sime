@@ -12,9 +12,6 @@ var Align = require('absolute/Align');
 
 var when = require('when');
 
-var proj4 = window.proj4 = require('proj4');
-proj4.defs("EPSG:2154", "+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs");
-
 var geomTypeMapping = {
 	multipolygon: 'Polygon',
 	multilinestring: 'LineString',
@@ -36,11 +33,6 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 		]).height(args.defaultButtonSize), 'left', 'top'),
 	]);
 
-	var gml2Format = new ol.format.GML2({
-		featureNS: { tryton: 'http://www.tryton.org/' },
-		featureType: 'tryton:' + args.modelId,
-	});
-
 	// get geometry type
 	args.request({ method: "model.ir.model.field.search_read", params: [
 		[["model.model", "=", args.modelId], ["name", "=", "geom"]],
@@ -54,16 +46,15 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 
 	var wfsSource = this._wfsSource = new ol.source.Vector({
 		loader: function(extent) {
-			var url = 'REQUEST=GetFeature&TYPENAME=tryton:' + args.modelId + '&SRSNAME=EPSG:2154&bbox=' + ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:2154').join(',') + '';
-			if (args.query) {
-				url += '&FILTER=%3Cogc%3AFilter%3E%3Cogc%3AOr%3E%3Cogc%3APropertyIsEqualTo%3E%3Cogc%3APropertyName%3E'+args.query[0]+'%3C%2Fogc%3APropertyName%3E%3Cogc%3ALiteral%3E'+args.query[2]+'%3C%2Fogc%3ALiteral%3E%3C%2Fogc%3APropertyIsEqualTo%3E%3C%2Fogc%3AOr%3E%3C%2Fogc%3AFilter%3E';
-			}
-			args.wfsRequest(url).then(function(response) {
-				var features = gml2Format.readFeatures(response.entity, {
-					dataProjection: 'EPSG:2154',
-					featureProjection: 'EPSG:3857',
-				});
-				wfsSource.addFeatures(features);
+			args.wfsRequest({
+				method: 'getFeature',
+				params: {
+					type: args.modelId,
+					bbox: extent,
+					filter: args.query,
+				},
+			}).then(function(features3857) {
+				wfsSource.addFeatures(features3857);
 			});
 		},
 		strategy: ol.loadingstrategy.tile(ol.tilegrid.createXYZ({
@@ -264,9 +255,13 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 			source: this._editingSource,
 			type: this._geomType,
 		});
-		this._partDrawTool.on('drawend', function() {
+		this._partDrawTool.on('drawstart', () => {
+			this._drawing = true;
+		});
+		this._partDrawTool.on('drawend', () => {
+			this._drawing = false;
 			this.olMap.removeInteraction(this._partDrawTool);
-		}.bind(this));
+		});
 
 		this._addPartBtn.visible(true);
 		this._removePartBtn.visible(true);
@@ -331,7 +326,9 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 		this._partSelectTool.getFeatures().clear();
 	},
 	_saveGeom: function() {
-		this._partDrawTool.finishDrawing()
+		if (this._drawing) {
+			this._partDrawTool.finishDrawing()
+		}
 
 		var geomParts = this._editingSource.getFeatures(),
 		geom = null;
@@ -342,25 +339,15 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 			}));
 		}
 
-		var updatedFeature = new ol.Feature({
-			geom: geom && geom.clone().transform('EPSG:3857', 'EPSG:2154'),
-		});
-
 		var id = this._args.activeItem.value();
-		var fid = this._args.modelId + '.' + id;
-		updatedFeature.setId(fid);
-
-		var updateRequest = new ol.format.WFS().writeTransaction(null, [updatedFeature], null, {
-			featureNS: 'http://www.tryton.org/',
-			featureType: this._args.modelId,
-			featurePrefix: 'tryton',
-			gmlOptions: { srsName: 'EPSG:2154' },
-		});
 
 		this._args.wfsRequest({
-			path: 'REQUEST=Transaction',
-			method: 'post',
-			entity: updateRequest,
+			method: 'transaction',
+			params: {
+				type: this._args.modelId,
+				itemId: id,
+				geom: geom,
+			},
 		}).then(function() {
 			// success
 			var activeFeature = this._getActiveFeature();
@@ -369,7 +356,7 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 			}
 			var f = new ol.Feature(geom);
 			f.set('id', id);
-			f.setId(fid);
+			f.setId(this._args.modelId + '.' + id);
 			this._wfsSource.addFeature(f);
 			this._disableEditMode();
 		}.bind(this), function() {

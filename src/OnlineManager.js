@@ -7,6 +7,7 @@ import _Destroyable from 'ksf/base/_Destroyable'
 var Switch = require('absolute/Switch');
 
 var localRequest = require('./utils/LocalRequest')
+var localGeoRequest = require('./utils/localGeoRequest')
 var ConnectionView = require('./ConnectionView')
 
 export default compose(_ContentDelegate, _Destroyable, function(args) {
@@ -37,6 +38,7 @@ export default compose(_ContentDelegate, _Destroyable, function(args) {
 				online: false,
         goOnline: online.value.bind(online, true),
 				request: localRequest(args.localDb),
+				wfsRequest: localGeoRequest(args.localDb),
 				menuItemId: offlineMenuItemId.value(),
       }))
     }

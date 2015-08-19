@@ -1,5 +1,4 @@
 import assign from 'lodash/object/assign'
-import ol from 'openlayers'
 import getQgsFile from './getQgsFile'
 import getMenuChildren from './getMenuChildren'
 import getFieldIdsToRequest from './getFieldIdsToRequest'
@@ -40,17 +39,16 @@ function getActionFromMenuItem(requestRpc, menuItemId) {
 }
 
 function loadGeoItems(requestRpc, requestWfs, db, modelId, extent, fieldNames) {
-  var gml2Format = new ol.format.GML2({
-		featureNS: { tryton: 'http://www.tryton.org/' },
-		featureType: 'tryton:' + modelId,
-	})
   // get an id-list of in-extent items
   // NB: we don't use WFS data because attribute-values are untyped and to ensure consistency
-  return requestWfs('REQUEST=GetFeature&TYPENAME=tryton:' + modelId + '&SRSNAME=EPSG:2154&bbox=' + ol.proj.transformExtent(extent, 'EPSG:3857', 'EPSG:2154').join(',') + '')
-    .then(response => {
-      let idsInExtent = gml2Format.readFeatures(
-        response.entity, { dataProjection: 'EPSG:2154', featureProjection: 'EPSG:3857' })
-          .map(feature => parseInt(feature.getId().split('.').pop())) // convert id to number, (eg. from 'cg.ug.123' to 123)
+  return requestWfs({
+    method: 'getFeature',
+    params: {
+      type: modelId,
+      bbox: extent,
+    },
+  }).then(features => {
+      let idsInExtent = features.map(feature => parseInt(feature.getId().split('.').pop())) // convert id to number, (eg. from 'cg.ug.123' to 123)
       // get an id-list of items with no geometry
       // then download data for all items
       return requestRpc({method: 'model.' + modelId + '.search', params: [
