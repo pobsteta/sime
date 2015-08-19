@@ -8,9 +8,16 @@ export default function upload (requestsStore, request) {
   }
 }
 
+function cloneRequest(request) {
+  return {
+    method: request.method,
+    params: request.params.slice(),
+  }
+}
+
 function processFirstRequest(requestsStore, request) {
   var firstRequestId = requestsStore.keys()[0]
-  var firstRequest = requestsStore.value()[firstRequestId+'/request']
+  var firstRequest = cloneRequest(requestsStore.value()[firstRequestId+'/request'])
   return request(firstRequest).then(function () {
     return requestsStore.removeKey(firstRequestId)
   }, function (err) {

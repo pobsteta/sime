@@ -45,14 +45,11 @@ var trytonLogin = require('./utils/trytonLogin')
 
 // intercepteur pour une session utilis
 function forgeRequest(request, config) {
-  var params = request.params ? request.params.slice() : []
-	params.unshift(config.session.value());
-	params.unshift(config.userId);
-	params.push(config.preferences);
-	return {entity: {
-    method: request.method,
-    params: params,
-  }};
+	request.params = request.params || [];
+	request.params.unshift(config.session.value());
+	request.params.unshift(config.userId);
+	request.params.push(config.preferences);
+	return {entity: request};
 }
 function unforgeRequest (request) {
 	return {
