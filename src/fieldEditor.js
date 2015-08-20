@@ -10,6 +10,8 @@ var Background = require('absolute/Background');
 var Clickable = require('absolute/Clickable');
 var Button = require('absolute/Button');
 var VPile = require('absolute/VPile');
+var El = require('absolute/Element')
+var DomNodeContainer = require('absolute/DomNodeContainer')
 
 var findIndex = require('lodash/array/findIndex')
 
@@ -219,6 +221,16 @@ var editFieldFactories = {
 			args.nextCollection(modelId, query, viewsByType.tree, viewsByType.form);
 		});
 	},
+	binary: function (args) {
+		var field = args.field
+		var value = args.itemValue[field.name]
+		if (!value) {
+			return new Label().value('-')
+		}
+		var img = new El('img').prop('src', 'data:image/png;base64,'+value.base64).height(200)
+		return new VScroll(img).height(200)
+	},
+
 };
 module.exports = function createFieldEditor (args) {
 	var field = args.field;
