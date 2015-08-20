@@ -11,6 +11,8 @@ var Clickable = require('absolute/Clickable');
 var Button = require('absolute/Button');
 var VPile = require('absolute/VPile');
 
+var findIndex = require('lodash/array/findIndex')
+
 var getViewsByType = function (arch, fieldName) {
 	var fieldElement = arch.querySelector('field[name="'+fieldName+'"]')
 	var viewTypes = fieldElement.getAttribute('mode').split(',')
@@ -123,26 +125,25 @@ var editFieldFactories = {
 		return new HFlex([
 			selectButton = new Button()
 				.value(item[field.name+'.rec_name'])
-				.onAction(field.readonly ?
-					function(){} :
-					function() {
-						var currentValue = args.changes.attrs[field.name] || itemId
-						args.modal(new VPile().content([
-							new ChoiceList({
-								modelId: modelId,
-								activeItem: currentValue,
-								onInput: function (newItemId, recName) {
-									args.changes.attrs[field.name] = newItemId
-									selectButton.value(recName)
-									args.modal(null)
-								},
-								request: args.request,
-							}).height(500),
-							new Button().value("Annuler").onAction(function () {
+				.disabled(field.readonly)
+				.onAction(function() {
+					var currentValue = args.changes.attrs[field.name] || itemId
+					args.modal(new VPile().content([
+						new ChoiceList({
+							modelId: modelId,
+							activeItem: currentValue,
+							onInput: function (newItemId, recName) {
+								args.changes.attrs[field.name] = newItemId
+								selectButton.value(recName)
 								args.modal(null)
-							}).height(60),
-						]).width(200))
-					}
+							},
+							request: args.request,
+						}).height(500),
+						new Button().value("Annuler").onAction(function () {
+							args.modal(null)
+						}).height(60),
+					]).width(200))
+				}
 			),
 			[new Button().value(">").onAction(function () {
 				args.saver.ensureChangesAreSaved().then(function () {
@@ -152,25 +153,56 @@ var editFieldFactories = {
 			}).width(args.defaultButtonSize), 'fixed'],
 		])
 	},
-	one2many: function(args) {
+	many2many: function(args) {
 		var field = args.field;
 		var item = args.itemValue;
-		var count = 0
+		var subModelId = field.relation;
+		var subItemIds = item[field.name] ?item[field.name] : []
 
-		if (item[field.name]) {
-			count = item[field.name].length
+		var createSubItemView = (subItemId, subItemName) => {
+			var button = new Button()
+			subItemName.then((res) => button.value(res[0]['rec_name']))
+			return new HFlex([
+				button.value(subItemId).onAction(() => {
+					args.saver.ensureChangesAreSaved().then(function () {
+						var viewsByType = getViewsByType(args.arch, field.name)
+						args.nextItem(subModelId, subItemId, viewsByType.form);
+					})
+				}),
+				[new Button().value('-').width(30).onAction(() => {
+					updateMany2manyChanges(args.changes.attrs, field.name, 'delete', subItemId)
+					container.remove(subItemId)
+				})],
+			]).height(30)
 		}
 
-		return new Button().value('( ' + count + ' )').onAction(function() {
-			var modelId = field.relation;
-			var query = [field['relation_field'], '=', item.id];
-
-			var viewsByType = getViewsByType(args.arch, field.name)
-			args.nextCollection(modelId, query, viewsByType.tree, viewsByType.form);
-		});
+		var container = new VPile().content(subItemIds.map((subItemId =>
+			[createSubItemView(subItemId, args.request({method: 'model.'+subModelId+'.read', params: [
+				[subItemId],
+				['rec_name'],
+			]})), subItemId]))
+		)
+		return new VPile().content([
+			new VScroll(container).height(90),
+			new Button().value('+').onAction(() => {
+				args.modal(new VPile().content([
+					new ChoiceList({
+						modelId: subModelId,
+						onInput: function (selectedItemId, selectedItemName) {
+							updateMany2manyChanges(args.changes.attrs, field.name, 'add', selectedItemId)
+							container.add(selectedItemId, createSubItemView(selectedItemId, Promise.resolve([{'rec_name': selectedItemName}])))
+							args.modal(null)
+						},
+						request: args.request,
+					}).height(500),
+					new Button().value("Annuler").onAction(function () {
+						args.modal(null)
+					}).height(60),
+				]).width(200))
+			}).height(30),
+		])
 	},
-	// TODO: pour l'instant c'est du copier/coller de one2many mais il faut corriger la query
-	many2many: function(args) {
+	one2many: function(args) {
 		var field = args.field;
 		var item = args.itemValue;
 		var count = 0
@@ -194,4 +226,23 @@ module.exports = function createFieldEditor (args) {
 		return editFieldFactories[field.type](args);
 	}
 	return new Label().value(JSON.stringify(args.itemValue[field.name]));
+}
+
+function updateMany2manyChanges(changes, fieldName, method, itemId) {
+	if (! (fieldName in changes)) {
+		changes[fieldName] = []
+	}
+	var index = findIndex(changes[fieldName], (pair) => {
+		return pair[1][0] === itemId
+	})
+	if (index >= 0) {
+		let pair = changes[fieldName][index]
+		// si une opération inverse (add puis delete ou delete puis add) est déjà enregistrée, on la supprime simplement
+		if (method !== pair[0]) {
+			changes[fieldName].splice(index, 1)
+		}
+		// et si c'est la même méthode, on ne fait rien pour ne pas créer un doublon
+	} else {
+		changes[fieldName].push([method, [itemId]])
+	}
 }

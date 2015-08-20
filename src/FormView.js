@@ -16,6 +16,7 @@ var Switch = require('absolute/Switch');
 var Align = require('absolute/Align');
 var Button = require('absolute/Button');
 var Space = require('absolute/Space');
+var Margin = require('absolute/Margin');
 
 var createFieldEditor = require('./fieldEditor')
 
@@ -36,10 +37,10 @@ var ItemValueEditor = compose(_ContentDelegate, function (args) {
 				field: field,
 				arch: arch,
 			}))
-			container.add(fieldId, new HFlex([
+			container.add(fieldId, new Margin(new HFlex([
 				[new Label().value(field.string).width(150), 'fixed'],
 				fieldWidget,
-			]).height(30));
+			]), 5).height((fieldWidget.height() || 30)+10));
 		});
 	})
 
