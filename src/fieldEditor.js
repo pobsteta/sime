@@ -170,7 +170,7 @@ var editFieldFactories = {
 					})
 				}),
 				[new Button().value('-').width(30).onAction(() => {
-					updateMany2manyChanges(args.changes.attrs, field.name, 'delete', subItemId)
+					updateMany2manyChanges(args.changes.attrs, field.name, 'unlink', subItemId)
 					container.remove(subItemId)
 				})],
 			]).height(30)
