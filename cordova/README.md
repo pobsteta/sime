@@ -25,6 +25,7 @@ Puis configurer le projet :
 
     cordova plugin add cordova-plugin-whitelist
     cordova plugin add https://github.com/ffournier/cordova-plugin-mbtiles.git
+    cordova plugin add cordova-plugin-crosswalk-webview
     cordova platform add android
 
 Déploiement
