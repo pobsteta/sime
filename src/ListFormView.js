@@ -25,12 +25,11 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	var listView = this._own(new ListView(create(args, {
 		onAction: this.toggleMode.bind(this),
 	})));
-	var formView = new VFlex([
-		[new Button().value('basculer').height(60).onAction(function () {
+	var formView = this._own(new FormView(create(args, {
+		extraButton: new Button().value('basculer').height(args.defaultButtonSize).onAction(function () {
 			args.saver.ensureChangesAreSaved().then(self.toggleMode.bind(self))
-		}), 'fixed'],
-		this._own(new FormView(args)),
-	]);
+		}),
+	})));
 
 	this._content = new Reactive({
 		value: new MappedValue(this.mode, function(modeValue) {
