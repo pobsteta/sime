@@ -11,7 +11,6 @@ var Reactive = require('absolute/Reactive');
 var VFlex = require('absolute/VFlex');
 var HFlex = require('absolute/HFlex');
 var VPile = require('absolute/VPile');
-var El = require('absolute/Element');
 var VScroll = require('absolute/VScroll');
 var Switch = require('absolute/Switch');
 var Align = require('absolute/Align');
@@ -61,7 +60,6 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 		})
 	})
 
-	this._fileInput = new El('input').prop('type', 'file')
 	this._content = new VFlex([
 		new VScroll(formContainer),
 		[new HFlex([
@@ -69,8 +67,7 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 			new Button().value("Enregistrer").onAction(this._save.bind(this)),
 			new Button().value("Annuler").onAction(this._cancel.bind(this)),
 			new Button().value("Supprimer").onAction(this._destroyItem.bind(this)),
-			new Button().value("Ajouter une pièce jointe").onAction(this._addAttachement.bind(this)),
-			this._fileInput,
+			new Button().value("Ajouter une photo").onAction(this._addAttachement.bind(this)),
 		]).height(args.defaultButtonSize), 'fixed'],
 
 	])
@@ -120,22 +117,24 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 	},
 	_addAttachement: function () {
 		var args = this._args
-		var file = this._fileInput.prop('files')[0]
-		var reader = new FileReader()
-		reader.onloadend = () => {
+		navigator.camera.getPicture((imageData) => {
 			args.request({method: 'model.ir.attachment.create', params: [
 				[{
 					resource: args.modelId + ',' + args.itemId,
-					name: file.name,
+					name: new Date().toISOString()+'.jpg',
 					type: 'data',
 					data: {
 						'__class__': 'buffer',
-						'base64': reader.result.split(',')[1],
+						'base64': imageData,
 					},
 				}],
-			]})
-		}
-		reader.readAsDataURL(file)
+			]}).then(() => args.message.value("Photo enregistrée"))
+		}, (err) => {
+			args.message.value("Erreur lors de la prise de photo: "+ err)
+		}, {
+			quality: 50,
+			destinationType: window.Camera.DestinationType.DATA_URL,
+		})
 	},
 })
 
