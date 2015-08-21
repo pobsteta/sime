@@ -62,13 +62,13 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 
 	this._content = new HFlex([
 		new VScroll(formContainer),
-		[new VPile().content([
-			args.extraButton.height(args.defaultButtonSize),
+		[new VPile().content(
+			(args.extraButton ? [args.extraButton.height(args.defaultButtonSize)] : []).concat([
 			new Button().value("Enregistrer").height(args.defaultButtonSize).onAction(this._save.bind(this)),
 			new Button().value("Annuler").height(args.defaultButtonSize).onAction(this._cancel.bind(this)),
 			new Button().value("Supprimer").height(args.defaultButtonSize).onAction(this._destroyItem.bind(this)),
 			new Button().value("Ajouter une photo").height(args.defaultButtonSize).onAction(this._addAttachement.bind(this)),
-		]).width(100), 'fixed'],
+		])).width(100), 'fixed'],
 	])
 
 	this._own(on(args.saver, 'save', function () {
