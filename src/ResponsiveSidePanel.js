@@ -13,7 +13,7 @@ module.exports = compose(_ContentDelegate, function(args) {
     smallMargin: 30,
     panelMaxWidth: 330,
     panelPosition: 'left',
-    panelOpen: false
+    panelOpen: false,
   }, args.options);
 
   this._content = new Switch();

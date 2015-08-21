@@ -7,18 +7,18 @@ var Button = require('absolute/Button');
 var SidePanel = require('./ResponsiveSidePanel');
 
 module.exports = compose(_ContentDelegate, function(args) {
-  var container = this._content = new SidePanel({
-    main: new ZPile().content([
-      args.main,
-      new Align(new Button().width(50).height(50).value('|||').onAction(function() {
-        container.slidePanel(!container.isPanelOpen());
-      }), args.options.panelPosition, 'top')
-    ]),
-    panel: args.panel,
-    options: args.options
-  });
+  this._content = new ZPile().content([
+    this._panelContainer = new SidePanel({
+      main: args.main,
+      panel: args.panel,
+      options: args.options,
+    }).depth(10),
+    new Align(new Button().width(50).height(50).value('|||').onAction(() => {
+      this._panelContainer.slidePanel(!this._panelContainer.isPanelOpen());
+    }), args.options.panelPosition, 'top'),
+  ]);
 }, {
   focusArea: function(areaId) {
-    this._content.slidePanel(areaId === 'panel');
-  }
+    this._panelContainer.slidePanel(areaId === 'panel');
+  },
 });
