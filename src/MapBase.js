@@ -2,8 +2,7 @@ var compose = require('ksf/utils/compose');
 var _Destroyable = require('ksf/base/_Destroyable');
 var _ContentDelegate = require('absolute/_ContentDelegate');
 
-var ol = require('openlayers');
-// var ol = require('openlayers/dist/ol-debug');
+import ol from './openlayers'
 var Elmt = require('absolute/Element');
 
 export default compose(_ContentDelegate, _Destroyable, function(args) {

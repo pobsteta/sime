@@ -8,10 +8,10 @@ var bindValueDestroyable = require('ksf/observable/bindValueDestroyable')
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var on = require('ksf/utils/on');
 var Button = require('absolute/Button');
+var Element = require('absolute/Element');
 var Reactive = require('absolute/Reactive')
 
-var ol = require('openlayers');
-// var ol = require('openlayers/dist/ol-debug');
+import ol from './openlayers'
 var VPile = require('absolute/VPile');
 var ZPile = require('absolute/ZPile');
 var Align = require('absolute/Align');
@@ -53,7 +53,13 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 			this._addPartBtn = new Button().value("Ajouter une partie").onAction(this._addGeomPart.bind(this)).height(args.defaultButtonSize).visible(false),
 			this._removePartBtn = new Button().value("Supprimer une partie").onAction(this._removeGeomPart.bind(this)).height(args.defaultButtonSize).visible(false),
 			this._saveBtn = new Button().value("Enregistrer la géométrie").onAction(this._saveGeom.bind(this)).height(args.defaultButtonSize).visible(false),
+			this._clickCenterBtn = new Button().value("Créer point au centre").onAction(() => this._clickCenter()).height(args.defaultButtonSize).visible(false),
 		]).width(100), 'left', 'top'),
+		this._centerCross = new Align(new Element().prop('textContent', '+').style({
+			lineHeight: '20px',
+			textAlign: 'center',
+			pointerEvents: 'none',
+		}).width(20).height(20), 'middle', 'middle'),
 	]);
 
 	// get geometry type
@@ -93,7 +99,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 		console.log("cordova & SD card mounted");
 		var mbTilesPlugin = new MBTilesPlugin();
 		window.requestFileSystem(LocalFileSystem.PERSISTENT, 0, function (fileSystem) {
-			mbTilesPlugin.init({type: 'db', typepath: 'cdvfile', url: cordova.file.externalRootDirectory }, function(rinit) {
+			mbTilesPlugin.init({type: 'db', typepath: 'cdvfile', url: cordova.file.externalRootDirectory }, function() {
 				mbTilesPlugin.getDirectoryWorking(function(result) {
 					fileSystem.root.getFile(result.directory_working + mbtilesFileName, null, function () {
 						// mbtiles file exists
@@ -310,8 +316,6 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 				this._editingSource.addFeatures(editingParts);
 			}
 
-
-
 			this.olMap.addInteraction(this._partSelectTool = new ol.interaction.Select({
 				layers: [this._editingLayer],
 			}));
@@ -331,10 +335,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 			this._partDrawTool.on('drawstart', () => {
 				this._drawing = true;
 			});
-			this._partDrawTool.on('drawend', () => {
-				this._drawing = false;
-				this.olMap.removeInteraction(this._partDrawTool);
-			});
+			this._partDrawTool.on('drawend', () => this._stopDrawing());
 
 			this._addPartBtn.visible(true);
 			this._removePartBtn.visible(true).disabled(true);
@@ -344,10 +345,15 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 			this._editBtn.value("Annuler l'édition");
 		});
 	},
+	_stopDrawing: function() {
+		this._drawing = false;
+		this.olMap.removeInteraction(this._partDrawTool);
+		this._clickCenterBtn.visible(false)
+	},
 	_disableEditMode: function() {
 		this.olMap.removeInteraction(this._partSelectTool);
 		this.olMap.removeInteraction(this._partModifyTool);
-		this.olMap.removeInteraction(this._partDrawTool);
+		this._stopDrawing()
 
 		this.olMap.addInteraction(this._itemSelectTool);
 		this._editingSource.clear();
@@ -397,7 +403,8 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 		}
 	},
 	_addGeomPart: function() {
-		this.olMap.addInteraction(this._partDrawTool);
+		this.olMap.addInteraction(this._partDrawTool)
+		this._clickCenterBtn.visible(true)
 	},
 	_removeGeomPart: function() {
 		this._editingSource.removeFeature(this._partSelectTool.getFeatures().item(0));
@@ -442,5 +449,17 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 			this._saveBtn.value("erreur !");
 		}.bind(this));
 		this._saveBtn.value("en cours ...");
+	},
+	_clickCenter: function() {
+		// simulate
+		var bcr = this.parentNode().getBoundingClientRect()
+		var eventParams = {
+			clientX: bcr.left + this.left() + this.width() / 2,
+			clientY: bcr.top + this.top() + this.height() / 2,
+			bubbles: true,
+		}
+		var viewport = this._map.olMap.getViewport()
+		!viewport.dispatchEvent(new MouseEvent('mousedown', eventParams))
+		!viewport.dispatchEvent(new MouseEvent('mouseup', eventParams))
 	},
 });

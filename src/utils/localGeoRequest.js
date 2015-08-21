@@ -1,4 +1,4 @@
-import ol from 'openlayers'
+import ol from '../openlayers'
 import assign from 'lodash/object/assign'
 
 var geoJson = new ol.format.GeoJSON()
