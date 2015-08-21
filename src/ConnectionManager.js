@@ -159,7 +159,8 @@ var wfsInterceptor = interceptor({
 
 module.exports = compose(_ContentDelegate, function(args) {
   var connectionParams = new PersistableValue('connectionParams', {
-    url: 'http://cg94.bioecoforests.teclib.net:8000/tryton1',
+    host: 'http://cg94.bioecoforests.teclib.net:8000',
+    dbName: 'tryton1',
     username: 'admin',
   })
   var connection = this._connection = new PersistableValue('connection'); // null or {userId, userPref}
@@ -206,16 +207,18 @@ module.exports = compose(_ContentDelegate, function(args) {
 			return app
 		} else {
 			var connectionParamsValue = connectionParams.value();
-			var url, username, passwordInput, message;
+			var host, dbName, username, passwordInput, message;
 			appContainer.content(new Align(new VPile().content([
-				url = new LabelInput().placeholder('url').height(30).value(connectionParamsValue.url),
+				host = new LabelInput().placeholder('host').height(30).value(connectionParamsValue.host),
+        dbName = new LabelInput().placeholder('database').height(30).value(connectionParamsValue.dbName),
 				username = new LabelInput().placeholder('username').height(30).value(connectionParamsValue.username),
 				passwordInput = new LabelInput().placeholder('password').height(30),
 				new Button().value('Login').height(30).onAction(function() {
 					message.value('login...');
-					var pwd = passwordInput.value();
+					var pwd = passwordInput.value(),
+            url = host.value() + '/' + dbName.value()
 					trytonLogin({
-						url: url.value(),
+						url: url,
 						userName: username.value(),
 					}, session, pwd).then(function(loginRes) {
 						var userId = loginRes.result[0];
@@ -224,14 +227,15 @@ module.exports = compose(_ContentDelegate, function(args) {
 						message.value('login success');
 						// store new default params
 						connectionParams.value({
-							url: url.value(),
+							host: host.value(),
+              dbName: dbName.value(),
 							username: username.value(),
 						});
 
 						passwordValue.value(pwd);
 
 						return jsonRpcRequest({
-							path: url.value(),
+							path: url,
 							entity: {
 								"method": "model.res.user.get_preferences",
 								"params": [userId, token, true, {}],
@@ -239,7 +243,7 @@ module.exports = compose(_ContentDelegate, function(args) {
 						}).entity().then(function(prefRes) {
 							// store current connection values
 							connection.value({
-								url: url.value(),
+								url: url,
 								userId: userId,
 								userPref: prefRes.result,
 								userName: username.value(),
@@ -250,7 +254,7 @@ module.exports = compose(_ContentDelegate, function(args) {
 					});
 				}),
 				message = new Label().height(30),
-			]).width(400), 'middle', 'middle'));
+			]).width(300), 'middle', 'middle'));
 		}
 	});
 });
