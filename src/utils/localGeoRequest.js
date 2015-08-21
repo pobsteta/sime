@@ -38,14 +38,24 @@ export default function(db) {
     if (args.method === 'transaction') {
       var itemKey = keyPrefix + args.params.itemId
       var geom = geoJson.writeGeometryObject(args.params.geom.clone().transform('EPSG:3857', 'EPSG:2154'))
-      return new Promise((resolve, reject) => {
-        db.get(itemKey).then(itemValue =>
-          db.put(itemKey, assign(itemValue, { geom: geom }))
-            .then(() => resolve())
-        )
-        // TODO: enqueue local request
-        // db.put('_requests/'+new Date().toISOString()+'/request', args)
-      })
+      return db.get(itemKey).then(itemValue => Promise.all([
+        db.put(itemKey, assign(itemValue, { geom: geom })),
+        db.put('_requests/'+new Date().toISOString()+'/request', {
+          type: 'wfs',
+          request: serializeGeoRequest(args),
+        }),
+      ]))
     }
+  }
+}
+
+function serializeGeoRequest(geoRequest) {
+  return {
+    method: geoRequest.method,
+    params: {
+      type: geoRequest.params.type,
+      itemId: geoRequest.params.itemId,
+      geom: geoJson.writeGeometryObject(geoRequest.params.geom),
+    },
   }
 }

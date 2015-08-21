@@ -139,7 +139,7 @@ export default compose(_ContentDelegate, function(args) {
       }),
       [new Button().value("Envoyer maintenant").disabled(!args.online).onAction(function () {
         args.message.value("Envoi en cours...")
-        upload(requestsStore, args.request).then(
+        upload(requestsStore, args.request, args.wfsRequest).then(
           ()=>args.message.value("Envoi terminé"),
           ()=>args.message.value("Echec lors de l'envoi")
         )
@@ -171,8 +171,9 @@ export default compose(_ContentDelegate, function(args) {
               var req = requestsStore.value()[key+'/request']
               pile.add(key, new Margin(new Background(new HFlex([
                 new VFlex([
-                  new Label().value(JSON.stringify(req.method)),
-                  new Label().value(JSON.stringify(req.params)),
+                  new Label().value(JSON.stringify(req.type)),
+                  new Label().value(JSON.stringify(req.request.method)),
+                  new Label().value(JSON.stringify(req.request.params)),
                 ]),
                 new Reactive({
                   value: new MappedValue(new Leaf(requestsStore, key+'/lastTry'), val =>
@@ -191,7 +192,7 @@ export default compose(_ContentDelegate, function(args) {
           })),
           [new Button().value("Envoyer maintenant").disabled(!args.online).onAction(function () {
             args.message.value("Envoi en cours...")
-            upload(requestsStore, args.request).then(
+            upload(requestsStore, args.request, args.wfsRequest).then(
               ()=>args.message.value("Envoi terminé"),
               ()=>args.message.value("Echec lors de l'envoi")
             )

@@ -192,7 +192,10 @@ function irRequest(db, path, params) {
 
 function saveRequest(db, method, request) {
   if (method === 'write' || method === 'delete' || method === 'create') {
-    return db.put('_requests/'+new Date().toISOString()+'/request', request)
+    return db.put('_requests/'+new Date().toISOString()+'/request', {
+      type: 'rpc',
+      request: request,
+    })
   } else {
     return Promise.resolve(true)
   }
