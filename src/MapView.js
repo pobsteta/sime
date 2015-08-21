@@ -6,7 +6,7 @@ var Button = require('absolute/Button');
 
 var ol = require('openlayers');
 // var ol = require('openlayers/dist/ol-debug');
-var HPile = require('absolute/HPile');
+var VPile = require('absolute/VPile');
 var ZPile = require('absolute/ZPile');
 var Align = require('absolute/Align');
 
@@ -24,13 +24,13 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 	this._args = args;
 	this._content = new ZPile().content([
 		this._map = new MapBase(),
-		new Align(new HPile().content([
-			this._centerBtn = new Button().value("Centrer sur la géométrie").onAction(this._centerActive.bind(this)).width(100).visible(false),
-			this._editBtn = new Button().value("Editer la géométrie").onAction(this._toggleEdit.bind(this)).width(100).visible(false),
-			this._addPartBtn = new Button().value("Ajouter une partie").onAction(this._addGeomPart.bind(this)).width(100).visible(false),
-			this._removePartBtn = new Button().value("Supprimer une partie").onAction(this._removeGeomPart.bind(this)).width(100).visible(false),
-			this._saveBtn = new Button().value("Enregistrer la géométrie").onAction(this._saveGeom.bind(this)).width(100).visible(false),
-		]).height(args.defaultButtonSize), 'left', 'top'),
+		new Align(new VPile().content([
+			this._centerBtn = new Button().value("Centrer sur la géométrie").onAction(this._centerActive.bind(this)).height(args.defaultButtonSize).visible(false),
+			this._editBtn = new Button().value("Editer la géométrie").onAction(this._toggleEdit.bind(this)).height(args.defaultButtonSize).visible(false),
+			this._addPartBtn = new Button().value("Ajouter une partie").onAction(this._addGeomPart.bind(this)).height(args.defaultButtonSize).visible(false),
+			this._removePartBtn = new Button().value("Supprimer une partie").onAction(this._removeGeomPart.bind(this)).height(args.defaultButtonSize).visible(false),
+			this._saveBtn = new Button().value("Enregistrer la géométrie").onAction(this._saveGeom.bind(this)).height(args.defaultButtonSize).visible(false),
+		]).width(100), 'left', 'top'),
 	]);
 
 	// get geometry type
