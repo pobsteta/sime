@@ -43,11 +43,11 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	this._content = new VFlex([
 		new VScroll(container),
 		[new HFlex([
-			[new Space().width(args.defaultButtonSize+10), 'fixed'],
 			new Button().value("Ajouter un élément").onAction(function () {
 				args.activeItem.value('new')
 				if (args.onAction) {args.onAction()}
 			}),
+			[new Space().width(args.defaultButtonSize+10), 'fixed'],
 		]).height(args.defaultButtonSize), 'fixed'],
 	]);
 

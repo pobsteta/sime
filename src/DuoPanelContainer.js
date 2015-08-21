@@ -13,13 +13,13 @@ module.exports = compose(_ContentDelegate, function(panels) {
     panels[0],
     new Align(new Button().width(50).height(50).value('<').onAction(function() {
       container.layouter().slidePanels(-1);
-    }), 'right', 'bottom')
+    }), 'left', 'bottom'),
   ]);
   var rightPanel = new ZPile().content([
     panels[1],
     new Align(new Button().width(50).height(50).value('>').onAction(function() {
       container.layouter().slidePanels(1);
-    }), 'left', 'bottom')
+    }), 'right', 'bottom'),
   ]);
   var container = this._content = new HResponsive({
     large: new DuoPanelLarge([leftPanel, rightPanel]),
