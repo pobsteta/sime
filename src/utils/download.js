@@ -5,7 +5,7 @@ import getFieldIdsToRequest from './getFieldIdsToRequest'
 import {sublevel, batch, put, del} from './db'
 
 // set a limit to prevent accidental huge requests
-const resultsLimit = 100;
+const resultsLimit = 1000;
 
 function first (array) {
   return array.length ? array[0] : null

@@ -71,7 +71,7 @@ function displayList (args) {
 
 	return when.all([args.listViewDef, request({
 		"method": "model."+modelId+".search",
-		"params": [query, 0, 10, null],
+		"params": [query, 0, 100, null],
 	})]).then(function(res) {
 		var viewDef = res[0];
 		var itemIds = res[1];

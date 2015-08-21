@@ -47,7 +47,7 @@ registry.register('text/xml', {
 
 var trytonLogin = require('./utils/trytonLogin')
 
-// intercepteur pour une session utilis
+// intercepteur pour une session utilisateur
 function forgeRequest(request, config) {
 	request.params = request.params || [];
 	request.params.unshift(config.session.value());

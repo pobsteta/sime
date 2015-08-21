@@ -11,7 +11,6 @@ var Clickable = require('absolute/Clickable');
 var Button = require('absolute/Button');
 var VPile = require('absolute/VPile');
 var El = require('absolute/Element')
-var DomNodeContainer = require('absolute/DomNodeContainer')
 
 var findIndex = require('lodash/array/findIndex')
 
@@ -32,7 +31,7 @@ var ChoiceList = compose(_ContentDelegate, function (args) {
 	args.request({method: "model."+args.modelId+".search_read", params: [
 		[],
 		0,
-		10,
+		100,
 		null,
 		['rec_name'],
 	]}).then(function(items) {

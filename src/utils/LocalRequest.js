@@ -3,8 +3,6 @@ import get from 'lodash/object/get'
 import find from 'lodash/collection/find'
 import pick from 'lodash/object/pick'
 
-const searchLimit = 1000
-
 
 function searchItems(db, prefix, params, readValue) {
   var query = params[0]
@@ -18,7 +16,7 @@ function searchItems(db, prefix, params, readValue) {
     db.createValueStream({
       gte: prefix,
       lte: prefix+'\uffff',
-      limit: searchLimit,
+      limit: params[2],
     })
       .on('data', function(value) {
           if (get(value, queryProp) === queryOperand) {
