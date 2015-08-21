@@ -276,6 +276,8 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 		this._editingSource.clear();
 		this._refreshActiveHighlighting();
 
+		this.olMap.removeInteraction(this._partDrawTool);
+
 		this._addPartBtn.visible(false);
 		this._removePartBtn.visible(false);
 		this._saveBtn.visible(false);
