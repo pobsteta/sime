@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="fr.bef.tryton" version="0.1" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
-	<name>Tryton Mobile</name>
+<widget id="com.bioecoforests.sime" version="0.1" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+	<name>SIME</name>
 	<description>
-		Tryton mobile client
+		SIME
 	</description>
 	<author email="contact@bioecoforests.com" href="http://www.bioecoforests.com">
 		Bio Eco Forests
