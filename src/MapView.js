@@ -1,8 +1,14 @@
+/* global MBTilesPlugin, LocalFileSystem, cordova*/
+
 var compose = require('ksf/utils/compose');
 var _Destroyable = require('ksf/base/_Destroyable');
+var Value = require('ksf/observable/Value')
+var bindValue = require('ksf/observable/bindValue')
+var bindValueDestroyable = require('ksf/observable/bindValueDestroyable')
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var on = require('ksf/utils/on');
 var Button = require('absolute/Button');
+var Reactive = require('absolute/Reactive')
 
 var ol = require('openlayers');
 // var ol = require('openlayers/dist/ol-debug');
@@ -12,6 +18,15 @@ var Align = require('absolute/Align');
 
 var when = require('when');
 
+var toggleValue = function (val) {
+	val.value(!val.value())
+}
+
+var getCenter = function (position) {
+	return position ? ol.proj.transform([position.coords.longitude, position.coords.latitude], 'EPSG:4326', 'EPSG:3857') : [0,0]
+
+}
+
 var geomTypeMapping = {
 	multipolygon: 'Polygon',
 	multilinestring: 'LineString',
@@ -20,11 +35,19 @@ var geomTypeMapping = {
 
 import MapBase from './MapBase'
 
-var Map = compose(_ContentDelegate, _Destroyable, function(args) {
+
+module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	this._args = args;
+	var followPosition = this._followPosition = new Value(true)
+
 	this._content = new ZPile().content([
 		this._map = new MapBase(),
 		new Align(new VPile().content([
+			new Reactive({
+				value: followPosition,
+				content: new Button().value("Suivre ma position").onAction(toggleValue.bind(null, followPosition)),
+				prop: 'disabled',
+			}).height(args.defaultButtonSize),
 			this._centerBtn = new Button().value("Centrer sur la géométrie").onAction(this._centerActive.bind(this)).height(args.defaultButtonSize).visible(false),
 			this._editBtn = new Button().value("Editer la géométrie").onAction(this._toggleEdit.bind(this)).height(args.defaultButtonSize).visible(false),
 			this._addPartBtn = new Button().value("Ajouter une partie").onAction(this._addGeomPart.bind(this)).height(args.defaultButtonSize).visible(false),
@@ -157,7 +180,48 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 				// })
 			],
 		}),
+		new ol.layer.Vector({
+			source: this._locationSource = new ol.source.Vector(),
+			// style: [
+			// 	new ol.style.Style({
+			// 		stroke: new ol.style.Stroke({
+			// 			color: 'rgba(255, 255, 0, 0.5)',
+			// 			width: 2,
+			// 		}),
+			// 		fill: new ol.style.Fill({
+			// 			color: 'rgba(255,255,255,0.4)',
+			// 		}),
+			// 	}),
+			// ],
+		}),
 	]);
+
+	this._positionCenterFeature = new ol.Feature(this._positionCenterGeom = new ol.geom.Point([0,0]))
+	this._positionAccuracyFeature = new ol.Feature(this._positionAccuracyGeom = new ol.geom.Circle([0,0],0))
+	this._own(bindValue(args.position, (newPosition) => {
+		if (newPosition) {
+			if (this._locationSource.getFeatures().length === 0) {
+				this._locationSource.addFeatures([this._positionCenterFeature, this._positionAccuracyFeature])
+			}
+			var center = getCenter(newPosition)
+			var radius = newPosition.coords.accuracy
+			this._positionCenterGeom.setCoordinates(center)
+			this._positionAccuracyGeom.setCenterAndRadius(center, radius)
+		} else {
+			this._locationSource.clear()
+		}
+	}))
+
+	this._own(bindValueDestroyable(followPosition, (followPositionValue) => {
+		if (followPositionValue) {
+			this.olMap.once('pointerdrag', followPosition.value.bind(followPosition, false))
+			return bindValue(args.position, (newPosition) => {
+				if (newPosition) {
+					this.olMap.getView().setCenter(getCenter(newPosition))
+				}
+			}, this)
+		}
+	}, this))
 
 	this.olMap.addInteraction(this._itemSelectTool = new ol.interaction.Select({
 		layers: [this._mainLayer],
@@ -205,6 +269,7 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 	},
 	_centerActive: function() {
 		this._getActiveGeom().then(function(geom) {
+			this._followPosition.value(false)
 			this.olMap.getView().fit(geom, this.olMap.getSize());
 		}.bind(this));
 	},
@@ -244,6 +309,8 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 
 				this._editingSource.addFeatures(editingParts);
 			}
+
+
 
 			this.olMap.addInteraction(this._partSelectTool = new ol.interaction.Select({
 				layers: [this._editingLayer],
@@ -375,17 +442,5 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 			this._saveBtn.value("erreur !");
 		}.bind(this));
 		this._saveBtn.value("en cours ...");
-	}
-});
-
-/**
-@params args {
-modelId
-query
-request
-}
-*/
-module.exports = compose(_ContentDelegate, function(args) {
-	this._args = args;
-	this._content = new Map(args);
+	},
 });

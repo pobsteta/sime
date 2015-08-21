@@ -8,6 +8,7 @@ import ZPile from 'absolute/ZPile'
 import Switch from 'absolute/Switch'
 import Label from 'absolute/Label'
 import Button from 'absolute/Button'
+import Value from 'ksf/observable/Value'
 
 import ConnectionManager from './ConnectionManager'
 
@@ -40,6 +41,19 @@ var ConfirmDialog = compose(_ContentDelegate, function (question) {
   },
 })
 
+var position = new Value()
+navigator.geolocation.watchPosition(
+  position.value.bind(position),
+  (err) => {
+    position.value(null)
+    console.warn("Erreur lors de l'acquisition de la position", err)
+  },
+  {
+    enableHighAccuracy: true,
+    maximumAge: 30*1000,
+    //timeout: 3*60*1000,
+  }
+)
 
 export default compose(_ContentDelegate, function() {
 	var popupContainer = new Switch().depth(10)
@@ -59,6 +73,7 @@ export default compose(_ContentDelegate, function() {
         popupContainer.content(content ? new Modal(content) : null)
       },
       defaultButtonSize: defaultButtonSize,
+      position: position,
     }).depth(1000),
 		popupContainer,
 	])
