@@ -203,80 +203,89 @@ var Map = compose(_ContentDelegate, _Destroyable, function(args) {
 			}
 		}
 	},
-	_enableEditMode: function() {
-		this._args.changes.geom = true
-		this._itemSelectTool.getFeatures().clear();
-		this.olMap.removeInteraction(this._itemSelectTool);
-
-		this._getActiveGeom().then(this._editGeometry.bind(this));
-	},
 	_centerActive: function() {
 		this._getActiveGeom().then(function(geom) {
 			this.olMap.getView().fit(geom, this.olMap.getSize());
 		}.bind(this));
 	},
-	_editGeometry: function(geom) {
-		if (geom) {
-			this.olMap.getView().fit(geom, this.olMap.getSize());
-			var editingParts;
-			if (this._geomType === 'Polygon') {
-				editingParts = geom.getPolygons().map(function(geomPart) {
-					// converts coordinates from XYZ to only XY
-					// since it causes an error when merging with drawn geometries
-					// cf. https://github.com/openlayers/ol3/issues/2700
-					return new ol.Feature(new ol.geom.Polygon(geomPart.getCoordinates().map(function(linearRing) {
-						return linearRing.map(function(coords) {
+	_enableEditMode: function() {
+		this._args.changes.geom = true
+		this._itemSelectTool.getFeatures().clear();
+		this.olMap.removeInteraction(this._itemSelectTool);
+
+		this._getActiveGeom().then((geom) => {
+			if (geom) {
+				this.olMap.getView().fit(geom, this.olMap.getSize());
+				var editingParts;
+				if (this._geomType === 'Polygon') {
+					editingParts = geom.getPolygons().map(function(geomPart) {
+						// converts coordinates from XYZ to only XY
+						// since it causes an error when merging with drawn geometries
+						// cf. https://github.com/openlayers/ol3/issues/2700
+						return new ol.Feature(new ol.geom.Polygon(geomPart.getCoordinates().map(function(linearRing) {
+							return linearRing.map(function(coords) {
+								return coords.slice(0,2);
+							});
+						})));
+					});
+				} else if (this._geomType === 'LineString') {
+					editingParts = geom.getLineStrings().map(function(geomPart) {
+						// converts coordinates from XYZ to only XY
+						return new ol.Feature(new ol.geom.LineString(geomPart.getCoordinates().map(function(coords) {
 							return coords.slice(0,2);
-						});
-					})));
-				});
-			} else if (this._geomType === 'LineString') {
-				editingParts = geom.getLineStrings().map(function(geomPart) {
-					// converts coordinates from XYZ to only XY
-					return new ol.Feature(new ol.geom.LineString(geomPart.getCoordinates().map(function(coords) {
-						return coords.slice(0,2);
-					})));
-				});
-			} else if (this._geomType === 'Point') {
-				editingParts = geom.getPoints().map(function(geomPart) {
-					// converts coordinates from XYZ to only XY
-					return new ol.Feature(new ol.geom.Point(geomPart.getCoordinates().slice(0,2)));
-				});
+						})));
+					});
+				} else if (this._geomType === 'Point') {
+					editingParts = geom.getPoints().map(function(geomPart) {
+						// converts coordinates from XYZ to only XY
+						return new ol.Feature(new ol.geom.Point(geomPart.getCoordinates().slice(0,2)));
+					});
+				}
+
+				this._editingSource.addFeatures(editingParts);
 			}
 
-			this._editingSource.addFeatures(editingParts);
-		}
+			this.olMap.addInteraction(this._partSelectTool = new ol.interaction.Select({
+				layers: [this._editingLayer],
+			}));
+			var selection = this._partSelectTool.getFeatures()
+			selection.on('change:length', () => {
+				this._removePartBtn.disabled(!selection.getLength())
+			})
+			this.olMap.addInteraction(this._partModifyTool = new ol.interaction.Modify({
+				features: selection,
+			}));
 
-		this.olMap.addInteraction(this._partSelectTool = new ol.interaction.Select({
-			layers: [this._editingLayer],
-		}));
 
-		this._partDrawTool = new ol.interaction.Draw({
-			source: this._editingSource,
-			type: this._geomType,
+			this._partDrawTool = new ol.interaction.Draw({
+				source: this._editingSource,
+				type: this._geomType,
+			});
+			this._partDrawTool.on('drawstart', () => {
+				this._drawing = true;
+			});
+			this._partDrawTool.on('drawend', () => {
+				this._drawing = false;
+				this.olMap.removeInteraction(this._partDrawTool);
+			});
+
+			this._addPartBtn.visible(true);
+			this._removePartBtn.visible(true).disabled(true);
+			this._saveBtn.visible(true);
+
+			this._editMode = true;
+			this._editBtn.value("Annuler l'édition");
 		});
-		this._partDrawTool.on('drawstart', () => {
-			this._drawing = true;
-		});
-		this._partDrawTool.on('drawend', () => {
-			this._drawing = false;
-			this.olMap.removeInteraction(this._partDrawTool);
-		});
-
-		this._addPartBtn.visible(true);
-		this._removePartBtn.visible(true);
-		this._saveBtn.visible(true);
-
-		this._editMode = true;
-		this._editBtn.value("Annuler l'édition");
 	},
 	_disableEditMode: function() {
 		this.olMap.removeInteraction(this._partSelectTool);
+		this.olMap.removeInteraction(this._partModifyTool);
+		this.olMap.removeInteraction(this._partDrawTool);
+
 		this.olMap.addInteraction(this._itemSelectTool);
 		this._editingSource.clear();
 		this._refreshActiveHighlighting();
 
-		this.olMap.removeInteraction(this._partDrawTool);
 
 		this._addPartBtn.visible(false);
 		this._removePartBtn.visible(false);
