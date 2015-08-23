@@ -149,6 +149,11 @@ function attachmentRequest(db, method, params) {
           },
       }])
       break;
+    // ajout d'une photo à un élément
+    case 'create':
+      var attachment = params[0][0]
+      var [modelId, itemId] = attachment.resource.split(',')
+      return db.put('models/'+modelId+'/itemAttachments/'+itemId+'/'+attachment.name, attachment)
     default:
       console.warn("attachmentRequest not implemented", method, params)
       return Promise.reject("Not implemented")
@@ -207,15 +212,17 @@ export default function (db) {
     var method = path[path.length-1]
     var params = args.params
 
+    var requestResult
     switch (path[0]) {
       case 'ir':
-        return irRequest(db, path.slice(1), params)
+        requestResult = irRequest(db, path.slice(1), params)
         break;
       default:
-        return Promise.all([
-          modelRequest(db, path, params),
-          saveRequest(db, method, args),
-        ]).then(resp => resp[0])
+        requestResult = modelRequest(db, path, params)
     }
+    return Promise.all([
+      requestResult,
+      saveRequest(db, method, args),
+    ]).then(resp => resp[0])
   }
 }

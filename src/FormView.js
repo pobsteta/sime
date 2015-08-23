@@ -23,6 +23,13 @@ var createFieldEditor = require('./fieldEditor')
 var getFieldIdsToRequest = require('./utils/getFieldIdsToRequest');
 var getFieldsFromView = require('./utils/getFieldsFromView')
 
+var fakeCamera = {
+	getPicture: function fakeGetPicture(cb) {
+		setTimeout(cb.bind(null, '/9j/4QDCRXhpZgAASUkqAAgAAAAHABIBAwABAAAAAQAAABoBBQABAAAAYgAAABsBBQABAAAAagAAACgBAwABAAAAAgAAADEBAgAOAAAAcgAAADIBAgAUAAAAgAAAAGmHBAABAAAAlAAAAGJPcmRgAAAAAQAAAGAAAAABAAAAUGhvdG9GaWx0cmUgNwAyMDE1OjA4OjIzIDA4OjExOjI3AAMAAJAHAAQAAAAwMjEwAqADAAEAAAAKAAAAA6ADAAEAAAAKAAAA/9sAQwADAgIDAgIDAwMDBAMDBAUIBQUEBAUKBwcGCAwKDAwLCgsLDQ4SEA0OEQ4LCxAWEBETFBUVFQwPFxgWFBgSFBUU/9sAQwEDBAQFBAUJBQUJFA0LDRQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBQU/8AAEQgACgAKAwEiAAIRAQMRAf/EAB8AAAEFAQEBAQEBAAAAAAAAAAABAgMEBQYHCAkKC//EALUQAAIBAwMCBAMFBQQEAAABfQECAwAEEQUSITFBBhNRYQcicRQygZGhCCNCscEVUtHwJDNicoIJChYXGBkaJSYnKCkqNDU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6g4SFhoeIiYqSk5SVlpeYmZqio6Slpqeoqaqys7S1tre4ubrCw8TFxsfIycrS09TV1tfY2drh4uPk5ebn6Onq8fLz9PX29/j5+v/EAB8BAAMBAQEBAQEBAQEAAAAAAAABAgMEBQYHCAkKC//EALURAAIBAgQEAwQHBQQEAAECdwABAgMRBAUhMQYSQVEHYXETIjKBCBRCkaGxwQkjM1LwFWJy0QoWJDThJfEXGBkaJicoKSo1Njc4OTpDREVGR0hJSlNUVVZXWFlaY2RlZmdoaWpzdHV2d3h5eoKDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uLj5OXm5+jp6vLz9PX29/j5+v/aAAwDAQACEQMRAD8A4TTjeW0zidmZm5WEOCwUhcvjsARjAGMseg6b1RS/fiHYv0/A1LXBVn7RqVrH4fiq/wBYanypPyP/2Q=='
+		), 100)
+	},
+}
+
 
 // simple fomrulaire non réactif mais qui écrit dans changes.attrs
 var ItemValueEditor = compose(_ContentDelegate, function (args) {
@@ -116,7 +123,17 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 	},
 	_addAttachement: function () {
 		var args = this._args
-		navigator.camera.getPicture((imageData) => {
+		var camera, options
+		if (navigator.camera) {
+			camera = navigator.camera
+			options = {
+				quality: 50,
+				destinationType: window.Camera.DestinationType.DATA_URL,
+			}
+		} else {
+			camera = fakeCamera
+		}
+		camera.getPicture((imageData) => {
 			args.request({method: 'model.ir.attachment.create', params: [
 				[{
 					resource: args.modelId + ',' + args.itemId,
@@ -130,10 +147,7 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 			]}).then(() => args.message.value("Photo enregistrée"))
 		}, (err) => {
 			args.message.value("Erreur lors de la prise de photo: "+ err)
-		}, {
-			quality: 50,
-			destinationType: window.Camera.DestinationType.DATA_URL,
-		})
+		}, options)
 	},
 })
 
