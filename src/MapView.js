@@ -439,10 +439,12 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 			if (activeFeature) {
 				this._wfsSource.removeFeature(activeFeature);
 			}
-			var f = new ol.Feature(geom);
-			f.set('id', id);
-			f.setId(this._args.modelId + '.' + id);
-			this._wfsSource.addFeature(f);
+			if (geom) {
+				var f = new ol.Feature(geom);
+				f.set('id', id);
+				f.setId(this._args.modelId + '.' + id);
+				this._wfsSource.addFeature(f);
+			}
 			this._disableEditMode();
 		}.bind(this), function() {
 			// error
