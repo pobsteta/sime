@@ -24,7 +24,7 @@ function requestIconSvg(request, iconName) {
 		return Promise.resolve(trytonIcons[iconName])
 	} else {
 		return request({ method: 'model.ir.ui.icon.search_read', params: [
-			[['name', "=", iconName]],
+			['name', "=", iconName],
 			0,
 			1,
 			null,

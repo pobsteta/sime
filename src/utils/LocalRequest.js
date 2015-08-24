@@ -176,6 +176,18 @@ function actionRequest(db, method, params) {
   }
 }
 
+function iconRequest(db, method, params) {
+  switch (method) {
+    case 'search_read':
+      var iconName = params[0][2]
+      return db.get('icons/'+iconName).then((icon) => [icon])
+      break;
+    default:
+      console.warn("iconRequest not implemented", method, params)
+      return Promise.reject("Not implemented")
+  }
+}
+
 function irRequest(db, path, params) {
   var method = path.pop()
   switch (path.join('.')) {
@@ -191,6 +203,8 @@ function irRequest(db, path, params) {
       return irModelFieldRequest(db, method, params)
     case 'attachment':
       return attachmentRequest(db, method, params)
+    case 'ui.icon':
+      return iconRequest(db, method, params)
     default:
       console.warn("localRequest not implemented", path, method, params)
       return Promise.reject("Not implemented")

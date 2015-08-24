@@ -182,13 +182,33 @@ function getMenuItemValue (requestRpc, menuItemId) {
 
 function loadMenuItemValue(requestRpc, db, menuItemId) {
   return getMenuItemValue(requestRpc, menuItemId).then(menuItemValue =>
-    put(db, menuItemId, menuItemValue)
+    Promise.all([
+      put(db, 'menuItemValues/'+menuItemId, menuItemValue),
+      loadIconIfNecessary(requestRpc, db, menuItemValue.icon),
+    ])
   )
+}
+
+function loadIconIfNecessary(request, db, iconName) {
+  return db.get('icons/'+iconName).then(
+    () => Promise.resolve(true), // elle existe déjà, pas besoin de la redemander
+    () => loadIcon(request, db, iconName)
+  )
+}
+
+function loadIcon(request, db, iconName) {
+  return request({method: 'model.ir.ui.icon.search_read', params: [
+    ['name', '=', iconName],
+    0,
+    1,
+    null,
+    ['icon'],
+  ]}).then(res => db.put('icons/'+iconName, res[0]))
 }
 
 function loadMenuItem(requestRpc, requestWfs, db, menuItemId, extent) {
   return Promise.all([
-    loadMenuItemValue(requestRpc, sublevel(db, 'menuItemValues'), menuItemId),
+    loadMenuItemValue(requestRpc, db, menuItemId),
     loadMenuItemAction(requestRpc, requestWfs, db, menuItemId, extent),
   ])
 }
