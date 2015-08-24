@@ -10,6 +10,7 @@ import Button from 'absolute/Button'
 import Space from 'absolute/Space'
 import Margin from 'absolute/Margin'
 import Background from 'absolute/Background'
+import Value from 'ksf/observable/Value'
 import Reactive from 'absolute/Reactive'
 import ReactiveOrderedBranch from 'absolute/deep/OrderedBranch'
 import TransformedValue from 'ksf/observable/TransformedValue'
@@ -39,6 +40,7 @@ export default compose(_ContentDelegate, function(args) {
       }
     })
   })
+  var downloadProgress = new Value('')
 
   var dashboard = new VScroll(new VPile().content([
     new Label().value("Gestion des données hors-ligne").font({size: '18px', weight: 'bold'}).hAlign('center').height(args.defaultButtonSize),
@@ -106,25 +108,35 @@ export default compose(_ContentDelegate, function(args) {
     new Label().value("Dernier téléchargement").font({style: 'italic'}).height(50),
     new HFlex([
       new Reactive({
-        value: args.offlineDataTime,
+        value: args.offlineDataStatus,
         content: new Label(),
       }),
       [new Button().value("Télécharger maintenant").disabled(!args.online).onAction(()=> {
-        args.message.value("Téléchargement des données en cours...")
+        downloadProgress.value("Téléchargement des données en cours...")
+        args.offlineDataStatus.value("Aucune données")
         var db = args.localDb
         clearDb(db).then(() => {
           download(args.request, args.wfsRequest, db,
             args.offlineMenuItemId.value(),  // menuID
             args.offlineExtent.value()  // extent in EPSG:3857 (Mercator)
           ).then(
-            args.message.value.bind(args.message, "Téléchargement terminé"),
-            args.message.value.bind(args.message, "Erreur lors du téléchargement")
-          ).then(
-            ()=> args.offlineDataTime.value(new Date().toISOString())
+            () => {
+              args.offlineDataStatus.value(new Date().toISOString())
+              downloadProgress.value("Téléchargement terminé")
+            },
+            (err) => {
+              args.offlineDataStatus.value("["+new Date().toISOString()+"] Erreur : "+JSON.stringify(err))
+              downloadProgress.value("Erreur lors du téléchargement")
+            }
           )
         })
       }).width(200), 'fixed'],
     ]).height(args.defaultButtonSize),
+
+    [new Reactive({
+      value: downloadProgress,
+      content: new Label(),
+    }).height(args.defaultButtonSize), 'fixed'],
 
     new Space().height(20),
 

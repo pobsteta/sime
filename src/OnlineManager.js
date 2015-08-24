@@ -15,7 +15,7 @@ export default compose(_ContentDelegate, _Destroyable, function(args) {
 	var online = new PersistableValue('online', true) // true or false
 	var offlineMenuItemId = new PersistableValue('offlineMenuItemId', null)
 	var offlineExtent = new PersistableValue('offlineExtent', null)
-	var offlineDataTime = new PersistableValue('offlineDataTime', null)
+	var offlineDataStatus = new PersistableValue('offlineDataStatus', "Aucune données")
 
 	this._content = new Switch()
 
@@ -25,7 +25,7 @@ export default compose(_ContentDelegate, _Destroyable, function(args) {
 		var commonArgs = create(args, {
 			offlineMenuItemId: offlineMenuItemId,
 			offlineExtent: offlineExtent,
-			offlineDataTime: offlineDataTime,
+			offlineDataStatus: offlineDataStatus,
 		})
 		if (onlineValue) {
       view = new ConnectionView(create(commonArgs, {
