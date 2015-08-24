@@ -176,7 +176,7 @@ function loadMenuItemAction(requestRpc, requestWfs, db, menuItemId, extent) {
 function getMenuItemValue (requestRpc, menuItemId) {
   return requestRpc({"method": "model.ir.ui.menu.read", "params": [
     [menuItemId],
-    ["childs", "name", "parent", "favorite", "active", "icon", "parent.rec_name", "rec_name"],
+    ['parent', 'name', 'complete_name', 'childs', 'icon', 'action', 'sequence'],
   ]}).then(res => res[0])
 }
 
@@ -198,7 +198,7 @@ function loadMenuTree(requestRpc, requestWfs, db, menuItemId, extent) {
   return Promise.all([
     loadMenuItem(requestRpc, requestWfs, db, menuItemId, extent),
     getMenuChildren(requestRpc, menuItemId).then(menuItems => {
-      return Promise.all(menuItems.map(menuItem => loadMenuTree(requestRpc, requestWfs, db, menuItem, extent)))
+      return Promise.all(menuItems.map(menuItem => loadMenuTree(requestRpc, requestWfs, db, menuItem.id, extent)))
     }),
   ])
 }

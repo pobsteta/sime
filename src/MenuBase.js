@@ -1,4 +1,5 @@
 var create = require('lodash/object/create')
+var sortBy = require('lodash/collection/sortBy')
 var compose = require('ksf/utils/compose');
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var VFlex = require('absolute/VFlex');
@@ -7,12 +8,10 @@ var VPile = require('absolute/VPile');
 var VScroll = require('absolute/VScroll');
 var Margin = require('absolute/Margin');
 var Button = require('absolute/Button');
-var Reactive = require('absolute/Reactive');
+var Label = require('absolute/Label');
 var Background = require('absolute/Background');
 var Space = require('absolute/Space');
 var AnimatedPageSwitch = require('absolute/AnimatedPageSwitch');
-
-var Value = require('ksf/observable/Value');
 
 var getMenuChildren = require('./utils/getMenuChildren')
 
@@ -20,51 +19,44 @@ function displayMenu (args) {
 	var menuItemId = args.menuItemId
 	var message = args.message
 	var request = args.request
-	message.value('loading...');
-	getMenuChildren(request, menuItemId).then(function(res) {
-		var menuContainer = new VPile();
-		var menuPage = new Margin(new VScroll(menuContainer), 10);
-		args.container.content(menuPage, 'left');
-		if (menuItemId) {
-			menuContainer.add('back', new Margin(new Button().value('<').onAction(function() {
-				args.container.content(args.previous, 'right');
-			}), 10).height(args.defaultButtonSize+20));
-		}
+	message.value('loading...')
 
-		res.forEach(function(childMenuItemId) {
-			var menuItemLabel = new Value(childMenuItemId + '');
-			var menuItem = new HFlex([
-				[new Button().width(args.defaultButtonSize).value('+').onAction(function() {
-					displayMenu(create(args, {
-						menuItemId: childMenuItemId,
-						previous: menuPage,
-					}));
-				}), 'fixed'],
+	var menuChildrenContainer = new VPile()
+	var menuPage = new Margin(new VFlex([
+		[new Margin(new HFlex([
+			[new Button().value('<').disabled(!args.previous).onAction(function() {
+				args.container.content(args.previous, 'right')
+			}).width(args.defaultButtonSize), 'fixed'],
+			new Label().value(args.menuItemCompleteName),
+		]), 10).height(args.defaultButtonSize+20), 'fixed'],
+		new VScroll(menuChildrenContainer),
+	]), 10)
+	args.container.content(menuPage, 'left');
+
+	getMenuChildren(request, menuItemId).then(function(childMenuItems) {
+		menuChildrenContainer.content(sortBy(childMenuItems, 'sequence').map(function(childMenuItem) {
+			var childMenuItemId = childMenuItem.id
+			var drillDown = function() {
+				displayMenu(create(args, {
+					menuItemId: childMenuItemId,
+					menuItemCompleteName: childMenuItem['complete_name'],
+					previous: menuPage,
+				}));
+			}
+			return new HFlex([
+				[new Button().width(args.defaultButtonSize).value('+').disabled(childMenuItem.childs.length === 0).onAction(drillDown), 'fixed'],
 				new VFlex([
-					new Reactive({
-						value: menuItemLabel,
-						content: new Button().color('transparent').value(childMenuItemId+'').onAction(function() {
-							args.onItemSelect(childMenuItemId)
-						}),
+					new Button().color('transparent').value(childMenuItem.name).onAction(function() {
+						args.onItemSelect(childMenuItemId)
+						// auto drill down when there is no action
+						if (!childMenuItem.action) {
+							drillDown()
+						}
 					}),
 					[new Background(new Space()).height(1).color('#eee'), 'fixed'],
 				]),
 			]).height(args.defaultButtonSize);
-			menuContainer.add(childMenuItemId+'', menuItem);
-
-			request({
-				"method": "model.ir.ui.menu.read",
-				"params": [
-					[childMenuItemId],
-					["childs", "name", "parent", "favorite", "active", "icon", "parent.rec_name", "rec_name", "_timestamp"],
-				],
-			}).then(function(resp) {
-				menuItemLabel.value(resp[0].name);
-			}, function() {
-				console.log("error retreiving label for", childMenuItemId);
-			});
-
-		});
+		}))
 		message.value('done');
 	}, function(err) {
 		message.value("erreur");
@@ -86,5 +78,6 @@ module.exports = compose(_ContentDelegate, function(args) {
 
 	displayMenu(create(args, {
 		container: this._content,
+		menuItemCompleteName: '',
 	}))
 });

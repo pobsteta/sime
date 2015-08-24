@@ -56,10 +56,10 @@ export default compose(_ContentDelegate, function(args) {
               "method": "model.ir.ui.menu.read",
               "params": [
                 [id],
-                ["childs", "name", "parent", "favorite", "active", "icon", "parent.rec_name", "rec_name", "_timestamp"],
+                ["complete_name"],
               ],
             }).then(resp => {
-              this.value(resp[0].name);
+              this.value(resp[0]['complete_name']);
             }, function() {
               console.log("error retrieving label for", id);
             });
@@ -69,7 +69,6 @@ export default compose(_ContentDelegate, function(args) {
       }),
       [new Button().value("Définir").disabled(!args.online).width(100).onAction(() => {
         this._content.content(new MenuBase(create(args, {
-          menuItemId: null,
           onItemSelect: (menuItemId) => {
             args.offlineMenuItemId.value(menuItemId)
             // go back

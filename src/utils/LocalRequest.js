@@ -62,6 +62,9 @@ function menuRequest(db, method, params) {
     case 'search':
       return searchItems(db, prefix, params)
       break;
+    case 'search_read':
+      return searchItems(db, prefix, params, true)
+      break;
     case 'read':
       return readItems(db, prefix, params)
       break;
