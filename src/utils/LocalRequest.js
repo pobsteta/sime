@@ -179,7 +179,7 @@ function actionRequest(db, method, params) {
 function iconRequest(db, method, params) {
   switch (method) {
     case 'search_read':
-      var iconName = params[0][2]
+      var iconName = params[0][0][2]
       return db.get('icons/'+iconName).then((icon) => [icon])
       break;
     default:

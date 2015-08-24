@@ -198,7 +198,7 @@ function loadIconIfNecessary(request, db, iconName) {
 
 function loadIcon(request, db, iconName) {
   return request({method: 'model.ir.ui.icon.search_read', params: [
-    ['name', '=', iconName],
+    [['name', '=', iconName]],
     0,
     1,
     null,
