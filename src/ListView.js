@@ -9,7 +9,7 @@ var on = require('ksf/utils/on')
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var _Destroyable = require('ksf/base/_Destroyable');
 var Label = require('absolute/Label');
-var Button = require('absolute/Button');
+var IconButton = require('./IconButton');
 var VFlex = require('absolute/VFlex');
 var HFlex = require('absolute/HFlex');
 var VPile = require('absolute/VPile');
@@ -22,6 +22,8 @@ var Clickable = require('absolute/Clickable');
 var getFieldIdsToRequest = require('./utils/getFieldIdsToRequest');
 var createFieldDisplayer = require('./fieldDisplayer')
 var getFieldsFromView = require('./utils/getFieldsFromView')
+
+import {newDoc as iconNew} from './icons/index'
 
 /**
 @params args {
@@ -40,15 +42,14 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 			"params": [args.listViewId || null, "tree"],
 		}),
 	})
-	this._content = new VFlex([
+	this._content = new HFlex([
 		new VScroll(container),
-		[new HFlex([
-			new Button().value("Ajouter un élément").onAction(function () {
+		[new VPile().content([
+			new IconButton().icon(iconNew).title("Ajouter un élément").height(args.defaultButtonSize).onAction(function () {
 				args.activeItem.value('new')
 				if (args.onAction) {args.onAction()}
 			}),
-			[new Space().width(args.defaultButtonSize+10), 'fixed'],
-		]).height(args.defaultButtonSize), 'fixed'],
+		]).width(args.defaultButtonSize), 'fixed'],
 	]);
 
 	displayList(listArgs);

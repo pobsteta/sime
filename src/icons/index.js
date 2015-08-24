@@ -1,5 +1,6 @@
 var fs = require('fs')
 
+export var newDoc = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/document-new.svg')
 export var save = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/document-save.svg')
 export var toggle = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/view-fullscreen.svg')
 export var cancel = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/edit-undo.svg')

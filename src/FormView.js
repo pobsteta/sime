@@ -70,16 +70,20 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 		})
 	})
 
-	this._content = new HFlex([
-		new VScroll(formContainer),
-		[new VPile().content(
-			(args.extraButton ? [args.extraButton.height(args.defaultButtonSize)] : []).concat([
-			new IconButton().icon(icons.save).title("Enregistrer").height(args.defaultButtonSize).onAction(this._save.bind(this)),
-			new IconButton().icon(icons.cancel).title("Annuler les modifications").height(args.defaultButtonSize).onAction(this._cancel.bind(this)),
-			new IconButton().icon(icons.destroy).title("Supprimer").height(args.defaultButtonSize).onAction(this._destroyItem.bind(this)),
-			new IconButton().icon(icons.addPicture).title("Ajouter une photo").height(args.defaultButtonSize).onAction(this._addAttachement.bind(this)),
-		])).width(args.defaultButtonSize), 'fixed'],
-	])
+	this._content = new VScroll(formContainer)
+
+	// add buttons in toolbar
+	var tools = [
+		new IconButton().icon(icons.save).title("Enregistrer").height(args.defaultButtonSize).onAction(this._save.bind(this)),
+		new IconButton().icon(icons.cancel).title("Annuler les modifications").height(args.defaultButtonSize).onAction(this._cancel.bind(this)),
+		new IconButton().icon(icons.destroy).title("Supprimer").height(args.defaultButtonSize).onAction(this._destroyItem.bind(this)),
+		new IconButton().icon(icons.addPicture).title("Ajouter une photo").height(args.defaultButtonSize).onAction(this._addAttachement.bind(this)),
+	]
+	tools.forEach((btn, index) => args.toolbar.add('tool' + index, btn))
+	// remove buttons on destroy
+	this._own(function() {
+		tools.forEach((btn, index) => args.toolbar.remove('tool' + index))
+	})
 
 	this._own(on(args.saver, 'save', function () {
 		if (args.changes.modelId === args.modelId) {
@@ -176,19 +180,24 @@ var ItemCreator = compose(_ContentDelegate, _Destroyable, function (args) {
 		})
 	})
 
-	this._content = new VFlex([
-		new VScroll(formContainer),
-		[new HFlex([
-			new Button().value("Créer").onAction(function () {
-				self._save().catch(function() {}) // done() n'existe pas
-			}),
-			new Button().value("Annuler").onAction(function () {
-				args.changes.attrs = {}
-				args.activeItem.value(null)
-			}),
-			[new Space().width(args.defaultButtonSize+10), 'fixed'],
-		]).height(args.defaultButtonSize), 'fixed'],
-	])
+	this._content = new VScroll(formContainer)
+
+	// add buttons in toolbar
+	var tools = [
+		new IconButton().icon(icons.save).title("Créer").height(args.defaultButtonSize).onAction(function () {
+			self._save().catch(function() {}) // done() n'existe pas
+		}),
+		new IconButton().icon(icons.cancel).title("Annuler").height(args.defaultButtonSize).onAction(function () {
+			args.changes.attrs = {}
+			args.activeItem.value(null)
+		}),
+	]
+	tools.forEach((btn, index) => args.toolbar.add('tool' + index, btn))
+	// remove buttons on destroy
+	this._own(function() {
+		tools.forEach((btn, index) => args.toolbar.remove('tool' + index))
+	})
+
 
 	this._own(on(args.saver, 'save', function () {
 		if (args.changes.modelId === args.modelId) {
@@ -235,10 +244,12 @@ module.exports = compose(_Destroyable, _ContentDelegate, function(args) {
 			})
 			if (itemId === 'new') {
 				self._destroy('attrsChangedListener')
+				self._destroy('form')
 				return self._own(new ItemCreator(formArgs), 'form')
 			} else if (itemId) {
 				return new Reactive({
 					value: self._own(new FromEventValue(args.saver, 'attrsChanged', function () {
+						self._destroy('form')
 						return self._own(new ItemEditor(formArgs), 'form')
 					}), 'attrsChangedListener'),
 					content: new Switch(),

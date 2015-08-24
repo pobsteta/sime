@@ -3,6 +3,8 @@ var compose = require('ksf/utils/compose');
 var _Destroyable = require('ksf/base/_Destroyable');
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var Switch = require('absolute/Switch');
+var HFlex = require('absolute/HFlex');
+var VPile = require('absolute/VPile');
 var IconButton = require('./IconButton');
 var Value = require('ksf/observable/Value');
 var MappedValue = require('ksf/observable/MappedValue');
@@ -26,11 +28,17 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	var listView = this._own(new ListView(create(args, {
 		onAction: this.toggleMode.bind(this),
 	})));
-	var formView = this._own(new FormView(create(args, {
-		extraButton: new IconButton().icon(toggleIcon).title('Basculer la vue').height(args.defaultButtonSize).onAction(function () {
+	var toolbar = new VPile().content([
+		new IconButton().icon(toggleIcon).title('Basculer la vue').height(args.defaultButtonSize).onAction(function () {
 			args.saver.ensureChangesAreSaved().then(self.toggleMode.bind(self))
 		}),
-	})));
+	])
+	var formView = new HFlex([
+		this._own(new FormView(create(args, {
+			toolbar: toolbar,
+		}))),
+		[toolbar.width(args.defaultButtonSize), 'fixed'],
+	]);
 
 	this._content = new Reactive({
 		value: new MappedValue(this.mode, function(modeValue) {

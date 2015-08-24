@@ -30,7 +30,7 @@ export default compose(_ContentDelegate, _Evented, function() {
     return this
   },
   title: function(title) {
-    this._img.attr('title', title)
+    this._content.clickArea.attr('title', title)
     return this
   },
 })
