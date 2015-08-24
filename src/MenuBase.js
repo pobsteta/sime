@@ -8,12 +8,15 @@ var VPile = require('absolute/VPile');
 var VScroll = require('absolute/VScroll');
 var Margin = require('absolute/Margin');
 var Button = require('absolute/Button');
+var IconButton = require('./IconButton');
 var Label = require('absolute/Label');
 var Background = require('absolute/Background');
 var Space = require('absolute/Space');
 var AnimatedPageSwitch = require('absolute/AnimatedPageSwitch');
 
 var getMenuChildren = require('./utils/getMenuChildren')
+
+import * as icons from './icons/index'
 
 function displayMenu (args) {
 	var menuItemId = args.menuItemId
@@ -22,15 +25,16 @@ function displayMenu (args) {
 	message.value('loading...')
 
 	var menuChildrenContainer = new VPile()
-	var menuPage = new Margin(new VFlex([
-		[new Margin(new HFlex([
-			[new Button().value('<').disabled(!args.previous).onAction(function() {
+	var menuPage = new VFlex([
+		[new HFlex([
+			[new Space().width(args.defaultButtonSize), 'fixed'],
+			[new IconButton().icon(icons.up).title('Retour').disabled(!args.previous).onAction(function() {
 				args.container.content(args.previous, 'right')
 			}).width(args.defaultButtonSize), 'fixed'],
 			new Label().value(args.menuItemCompleteName),
-		]), 10).height(args.defaultButtonSize+20), 'fixed'],
-		new VScroll(menuChildrenContainer),
-	]), 10)
+		]).height(args.defaultButtonSize), 'fixed'],
+		new Margin(new VScroll(menuChildrenContainer), 10),
+	])
 	args.container.content(menuPage, 'left');
 
 	getMenuChildren(request, menuItemId).then(function(childMenuItems) {
@@ -44,7 +48,7 @@ function displayMenu (args) {
 				}));
 			}
 			return new HFlex([
-				[new Button().width(args.defaultButtonSize).value('+').disabled(childMenuItem.childs.length === 0).onAction(drillDown), 'fixed'],
+				[new IconButton().icon(icons.down).width(args.defaultButtonSize).title('Déplier').disabled(childMenuItem.childs.length === 0).onAction(drillDown), 'fixed'],
 				new VFlex([
 					new Button().color('transparent').value(childMenuItem.name).onAction(function() {
 						args.onItemSelect(childMenuItemId)

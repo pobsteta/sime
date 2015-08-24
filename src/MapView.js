@@ -7,7 +7,6 @@ var bindValue = require('ksf/observable/bindValue')
 var bindValueDestroyable = require('ksf/observable/bindValueDestroyable')
 var _ContentDelegate = require('absolute/_ContentDelegate');
 var on = require('ksf/utils/on');
-var Button = require('absolute/Button');
 var Element = require('absolute/Element');
 var Reactive = require('absolute/Reactive')
 
@@ -17,6 +16,9 @@ var ZPile = require('absolute/ZPile');
 var Align = require('absolute/Align');
 
 var when = require('when');
+
+import IconButton from './IconButton'
+import * as icons from './icons/index'
 
 var toggleValue = function (val) {
 	val.value(!val.value())
@@ -45,16 +47,16 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 		new Align(new VPile().content([
 			new Reactive({
 				value: followPosition,
-				content: new Button().value("Suivre ma position").onAction(toggleValue.bind(null, followPosition)),
+				content: new IconButton().icon(icons.gpsLock).title("Suivre ma position").onAction(toggleValue.bind(null, followPosition)),
 				prop: 'disabled',
 			}).height(args.defaultButtonSize),
-			this._centerBtn = new Button().value("Centrer sur la géométrie").onAction(this._centerActive.bind(this)).height(args.defaultButtonSize).visible(false),
-			this._editBtn = new Button().value("Editer la géométrie").onAction(this._toggleEdit.bind(this)).height(args.defaultButtonSize).visible(false),
-			this._addPartBtn = new Button().value("Ajouter une partie").onAction(this._addGeomPart.bind(this)).height(args.defaultButtonSize).visible(false),
-			this._removePartBtn = new Button().value("Supprimer une partie").onAction(this._removeGeomPart.bind(this)).height(args.defaultButtonSize).visible(false),
-			this._saveBtn = new Button().value("Enregistrer la géométrie").onAction(this._saveGeom.bind(this)).height(args.defaultButtonSize).visible(false),
-			this._clickCenterBtn = new Button().value("Créer point au centre").onAction(() => this._clickCenter()).height(args.defaultButtonSize).visible(false),
-		]).width(100), 'left', 'top'),
+			this._centerBtn = new IconButton().icon(icons.zoomGeom).title("Centrer sur la géométrie").onAction(this._centerActive.bind(this)).height(args.defaultButtonSize).visible(false),
+			this._editBtn = new IconButton().icon(icons.edit).title("Editer la géométrie").onAction(this._toggleEdit.bind(this)).height(args.defaultButtonSize).visible(false),
+			this._addPartBtn = new IconButton().icon(icons.addPart).title("Ajouter une partie").onAction(this._addGeomPart.bind(this)).height(args.defaultButtonSize).visible(false),
+			this._removePartBtn = new IconButton().icon(icons.removePart).title("Supprimer une partie").onAction(this._removeGeomPart.bind(this)).height(args.defaultButtonSize).visible(false),
+			this._saveBtn = new IconButton().icon(icons.save).title("Enregistrer la géométrie").onAction(this._saveGeom.bind(this)).height(args.defaultButtonSize).visible(false),
+			this._clickCenterBtn = new IconButton().icon(icons.addPoint).title("Créer point au centre").onAction(() => this._clickCenter()).height(args.defaultButtonSize).visible(false),
+		]).width(args.defaultButtonSize), 'left', 'top'),
 		this._centerCross = new Align(new Element().prop('textContent', '+').style({
 			lineHeight: '20px',
 			textAlign: 'center',
@@ -342,7 +344,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 			this._saveBtn.visible(true);
 
 			this._editMode = true;
-			this._editBtn.value("Annuler l'édition");
+			this._editBtn.icon(icons.cancel).title("Annuler l'édition");
 		});
 	},
 	_stopDrawing: function() {
@@ -363,11 +365,10 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 		this._addPartBtn.visible(false);
 		this._removePartBtn.visible(false);
 		this._saveBtn.visible(false);
-		this._saveBtn.value("Enregistrer");
 
 		this._editMode = false;
 		this._args.changes.geom = false
-		this._editBtn.value("Editer la géométrie");
+		this._editBtn.icon(icons.edit).title("Editer la géométrie");
 	},
 	_getActiveFeature: function() {
 		return this._wfsSource.getFeatureById(this._args.modelId + '.' + this._args.activeItem.value());
@@ -446,11 +447,11 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 				this._wfsSource.addFeature(f);
 			}
 			this._disableEditMode();
-		}.bind(this), function() {
+		}.bind(this), () => {
 			// error
-			this._saveBtn.value("erreur !");
-		}.bind(this));
-		this._saveBtn.value("en cours ...");
+			this._args.message.value("erreur !");
+		});
+		this._args.message.value("en cours ...");
 	},
 	_clickCenter: function() {
 		// simulate

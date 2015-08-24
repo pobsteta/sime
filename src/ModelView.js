@@ -7,7 +7,7 @@ var VFlex = require('absolute/VFlex');
 var Background = require('absolute/Background');
 var Switch = require('absolute/Switch');
 var Label = require('absolute/Label');
-var Button = require('absolute/Button');
+var IconButton = require('./IconButton');
 var Space = require('absolute/Space');
 var Reactive = require('absolute/Reactive');
 var Value = require('ksf/observable/Value');
@@ -15,6 +15,8 @@ var TransformedValue = require('ksf/observable/TransformedValue');
 
 var CollectionView = require('./CollectionView');
 var ItemView = require('./ItemView');
+
+import {previous as prevIcon} from './icons/index'
 
 var PathElement = compose(_ContentDelegate, function(args) {
 	var modelName;
@@ -62,11 +64,11 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	this._content = new VFlex([
 		[this._pathBar = new HPile().content([
 			new Space().width(70),
-			new Button().value('^').width(args.defaultButtonSize).onAction(function () {
+			new IconButton().icon(prevIcon).title("retour").width(args.defaultButtonSize).onAction(function () {
 				args.saver.ensureChangesAreSaved().then(function () {
 					self._back()
 				})
-			}).color('lightgrey'),
+			}),
 		]).height(args.defaultButtonSize), 'fixed'],
 		this._mainArea = new Switch(),
 	]);

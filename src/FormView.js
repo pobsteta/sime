@@ -15,6 +15,7 @@ var VScroll = require('absolute/VScroll');
 var Switch = require('absolute/Switch');
 var Align = require('absolute/Align');
 var Button = require('absolute/Button');
+var IconButton = require('./IconButton');
 var Space = require('absolute/Space');
 var Margin = require('absolute/Margin');
 
@@ -22,6 +23,8 @@ var createFieldEditor = require('./fieldEditor')
 
 var getFieldIdsToRequest = require('./utils/getFieldIdsToRequest');
 var getFieldsFromView = require('./utils/getFieldsFromView')
+
+import * as icons from './icons/index'
 
 var fakeCamera = {
 	getPicture: function fakeGetPicture(cb) {
@@ -71,11 +74,11 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 		new VScroll(formContainer),
 		[new VPile().content(
 			(args.extraButton ? [args.extraButton.height(args.defaultButtonSize)] : []).concat([
-			new Button().value("Enregistrer").height(args.defaultButtonSize).onAction(this._save.bind(this)),
-			new Button().value("Annuler").height(args.defaultButtonSize).onAction(this._cancel.bind(this)),
-			new Button().value("Supprimer").height(args.defaultButtonSize).onAction(this._destroyItem.bind(this)),
-			new Button().value("Ajouter une photo").height(args.defaultButtonSize).onAction(this._addAttachement.bind(this)),
-		])).width(100), 'fixed'],
+			new IconButton().icon(icons.save).title("Enregistrer").height(args.defaultButtonSize).onAction(this._save.bind(this)),
+			new IconButton().icon(icons.cancel).title("Annuler les modifications").height(args.defaultButtonSize).onAction(this._cancel.bind(this)),
+			new IconButton().icon(icons.destroy).title("Supprimer").height(args.defaultButtonSize).onAction(this._destroyItem.bind(this)),
+			new IconButton().icon(icons.addPicture).title("Ajouter une photo").height(args.defaultButtonSize).onAction(this._addAttachement.bind(this)),
+		])).width(args.defaultButtonSize), 'fixed'],
 	])
 
 	this._own(on(args.saver, 'save', function () {
