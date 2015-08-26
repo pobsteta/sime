@@ -75,7 +75,7 @@ function displayMenu (args) {
 				itemIcon.icon('data:image/svg+xml;utf8,' + svg)
 			})
 			return new HFlex([
-				[new IconButton().icon(icons.down).width(args.defaultButtonSize).title('Déplier').disabled(childMenuItem.childs.length === 0).onAction(drillDown), 'fixed'],
+				[new IconButton().icon(icons.next).width(args.defaultButtonSize).title('Déplier').disabled(childMenuItem.childs.length === 0).onAction(drillDown), 'fixed'],
 				[itemIcon.width(args.defaultButtonSize), 'fixed'],
 				new VFlex([
 					new Button().color('transparent').value(childMenuItem.name).onAction(clickAction),

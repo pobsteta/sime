@@ -20,6 +20,9 @@ import trytonLogin from './utils/trytonLogin'
 
 import OfflineDashboard from './OfflineDashboard'
 
+import IconButton from './IconButton'
+import * as icons from './icons/index'
+
 /**
 Vue qui affiche le menu et une zone principale
 @params args {
@@ -78,18 +81,18 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 					},
 					message: message,
 				})).width(300),
-				[new Button().value("Gestion du mode hors-ligne").onAction(function() {
+				[new HFlex([
+					args.online ?
+						new IconButton().icon(icons.offline).title("Passer hors ligne").onAction(args.goOffline):
+						new IconButton().icon(icons.online).title("Passer en ligne").onAction(args.goOnline),
+					new IconButton().icon(icons.config).title("Gestion du mode hors-ligne").onAction(function() {
 						mainArea.content(self._own(new OfflineDashboard(create(commonArgs, {
 							offlineMenuItemId: args.offlineMenuItemId,
 							message: message,
 						})), 'mainView'));
 						panelContainer.focusArea('main');
-					}).height(args.defaultButtonSize), 'fixed'],
-				[new HFlex([
-					args.online ?
-						new Button().value("Passer hors ligne").onAction(args.goOffline):
-						new Button().value("Passer en ligne").onAction(args.goOnline),
-					new Button().value("Déconnexion").onAction(args.logout),
+					}),
+					new IconButton().icon(icons.logout).title("Déconnexion").onAction(args.logout),
 				]).height(args.defaultButtonSize), 'fixed'],
 				[message.height(30), 'fixed'],
 			]),

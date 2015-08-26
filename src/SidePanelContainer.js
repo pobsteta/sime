@@ -6,7 +6,7 @@ var IconButton = require('./IconButton');
 
 var SidePanel = require('./ResponsiveSidePanel');
 
-import {close as closeIcon, menu as menuIcon} from './icons/index'
+import * as icons from './icons/index'
 
 module.exports = compose(_ContentDelegate, function(args) {
   this._content = new ZPile().content([
@@ -24,7 +24,7 @@ module.exports = compose(_ContentDelegate, function(args) {
   this._updateIcon(args.options.panelOpen)
 }, {
   _updateIcon: function(open) {
-    this._toggleBtn.icon(open ? closeIcon : menuIcon)
+    this._toggleBtn.icon(open ? icons.bottom : icons.first)
   },
   focusArea: function(areaId) {
     this._panelContainer.slidePanel(areaId === 'panel');

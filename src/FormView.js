@@ -77,7 +77,7 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 		new IconButton().icon(icons.save).title("Enregistrer").height(args.defaultButtonSize).onAction(this._save.bind(this)),
 		new IconButton().icon(icons.cancel).title("Annuler les modifications").height(args.defaultButtonSize).onAction(this._cancel.bind(this)),
 		new IconButton().icon(icons.destroy).title("Supprimer").height(args.defaultButtonSize).onAction(this._destroyItem.bind(this)),
-		new IconButton().icon(icons.addPicture).title("Ajouter une photo").height(args.defaultButtonSize).onAction(this._addAttachement.bind(this)),
+		new IconButton().icon(icons.attachment).title("Ajouter une photo").height(args.defaultButtonSize).onAction(this._addAttachement.bind(this)),
 	]
 	tools.forEach((btn, index) => args.toolbar.add('tool' + index, btn))
 	// remove buttons on destroy
