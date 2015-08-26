@@ -37,6 +37,33 @@ var geomTypeMapping = {
 
 import MapBase from './MapBase'
 
+var fill = new ol.style.Fill({
+	color: 'rgba(255,255,255,0.4)',
+});
+var mainColor = '#3399CC';
+var stroke = new ol.style.Stroke({
+	color: mainColor,
+	width: 2,
+});
+var baseStyle = [
+	new ol.style.Style({
+		image: new ol.style.Circle({
+			fill: fill,
+			stroke: stroke,
+			radius: 8,
+		}),
+		fill: fill,
+		stroke: stroke,
+	}),
+	// transparent buffer to make selecting easier
+	new ol.style.Style({
+		stroke: new ol.style.Stroke({
+			color: [255, 255, 255, 0.01],
+			width: 30,
+		}),
+	}),
+];
+
 
 module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	this._args = args;
@@ -147,12 +174,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	this.olMap.getLayers().extend([
 		this._mainLayer = new ol.layer.Vector({
 			source: wfsSource,
-			// style: new ol.style.Style({
-			//   stroke: new ol.style.Stroke({
-			//     color: 'rgba(0, 0, 255, 1.0)',
-			//     width: 2
-			//   })
-			// })
+			style: baseStyle,
 		}),
 		this._editingLayer = new ol.layer.Vector({
 			source: this._editingSource = new ol.source.Vector(),
