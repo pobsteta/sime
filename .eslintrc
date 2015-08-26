@@ -13,6 +13,6 @@
     "no-mixed-spaces-and-tabs": 1,
     "key-spacing": 1,
     "no-shadow": 1,
-
+    "no-bitwise": 1,
   }
 }

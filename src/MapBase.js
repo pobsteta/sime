@@ -73,7 +73,7 @@ export default compose(_ContentDelegate, _Destroyable, function(args) {
 	_updateSize: function() {
 		var w = this._mapEl.width(),
 			h = this._mapEl.height();
-		if (w & h) {
+		if (w && h) {
 			this.olMap.setSize([w, h]);
 		}
 	},
