@@ -255,6 +255,13 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 		if (id) {
 			this._editBtn.visible(true);
 			this._centerBtn.visible(true);
+			if (id === 'new') {
+				this._editBtn.disabled(true);
+				this._centerBtn.disabled(true);
+			} else {
+				this._editBtn.disabled(false);
+				this._centerBtn.disabled(false);
+			}
 		} else {
 			this._editBtn.visible(false);
 			this._centerBtn.visible(false);

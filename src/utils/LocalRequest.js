@@ -53,6 +53,7 @@ function createItems(db, prefix, params) {
   var itemValue = params[0][0]
   var itemId = itemValue.id = new Date().toISOString()
   return db.put(prefix+itemId, itemValue)
+    .then(() => [itemId])
 }
 
 

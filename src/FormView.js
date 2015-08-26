@@ -96,7 +96,7 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 	_save: function () {
 		var args = this._args
 		if (Object.keys(args.changes.attrs).length === 0) {
-			return true
+			return Promise.resolve(true)
 		}
 		return args.request({method: 'model.'+args.modelId+'.write', params: [
 			[args.itemId],
@@ -207,9 +207,6 @@ var ItemCreator = compose(_ContentDelegate, _Destroyable, function (args) {
 }, {
 	_save: function () {
 		var args = this._args
-		if (Object.keys(args.changes.attrs).length === 0) {
-			return true
-		}
 		return args.request({method: 'model.'+args.modelId+'.create', params: [
 			[args.changes.attrs],
 		]}).then(function (res) {
