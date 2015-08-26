@@ -1,5 +1,5 @@
 cd ..
-npm run build
+npm run release-cordova
 cd cordova/project
 cp ../config.xml .
 cp -r ../www/* www/

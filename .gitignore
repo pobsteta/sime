@@ -1,4 +1,6 @@
 node_modules
 dev/bundle.js
+release/bundle.js
+release/sime.html
 cordova/project/
-dev/
+cordova/*.apk

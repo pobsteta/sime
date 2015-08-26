@@ -4,11 +4,10 @@
   "description": "Système Intégré de Management Environnemental",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "watchify boot.js -o dev/bundle.js -dv -t babelify",
-    "bundle": "browserify boot.js | uglifyjs -mc > dev/bundle.js",
-    "html": "npm run bundle && html-inline dev/index.html > dev/app.html",
-    "build": "browserify boot.js -t babelify | uglifyjs -mc > cordova/project/www/app.js"
+    "release": "browserify boot.js -t babelify | uglifyjs -mc > release/bundle.js",
+    "release-html": "npm run release && html-inline release/index.html > release/sime.html",
+    "release-cordova": "npm run release && cp release/bundle.js cordova/project/www/app.js"
   },
   "author": "KaeS",
   "license": "ISC",
