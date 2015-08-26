@@ -17,21 +17,7 @@ var AnimatedPageSwitch = require('absolute/AnimatedPageSwitch');
 var getMenuChildren = require('./utils/getMenuChildren')
 
 import * as icons from './icons/index'
-import trytonIcons from './icons/tryton/index'
-
-function requestIconSvg(request, iconName) {
-	if (iconName in trytonIcons) {
-		return Promise.resolve(trytonIcons[iconName])
-	} else {
-		return request({ method: 'model.ir.ui.icon.search_read', params: [
-			[['name', "=", iconName]],
-			0,
-			1,
-			null,
-			['icon'],
-		]}).then(res => res[0] ? res[0].icon : '')
-	}
-}
+import getIconSvg from './utils/getIconSvg'
 
 function displayMenu (args) {
 	var menuItemId = args.menuItemId
@@ -71,7 +57,7 @@ function displayMenu (args) {
 			}
 
 			var itemIcon = new IconButton().onAction(clickAction)
-			requestIconSvg(request, childMenuItem['icon']).then(svg => {
+			getIconSvg(request, childMenuItem['icon']).then(svg => {
 				itemIcon.icon('data:image/svg+xml;utf8,' + svg)
 			})
 			return new HFlex([

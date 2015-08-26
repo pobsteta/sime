@@ -181,7 +181,7 @@ function iconRequest(db, method, params) {
   switch (method) {
     case 'search_read':
       var iconName = params[0][0][2]
-      return db.get('icons/'+iconName).then((icon) => [icon])
+      return db.get('icons/'+iconName).then((icon) => [{icon: icon}])
       break;
     default:
       console.warn("iconRequest not implemented", method, params)

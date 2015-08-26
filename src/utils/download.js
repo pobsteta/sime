@@ -3,6 +3,7 @@ import getQgsFile from './getQgsFile'
 import getMenuChildren from './getMenuChildren'
 import getFieldIdsToRequest from './getFieldIdsToRequest'
 import {sublevel, batch, put, del} from './db'
+import getIconSvg from './getIconSvg'
 
 // set a limit to prevent accidental huge requests
 const resultsLimit = 1000;
@@ -197,13 +198,7 @@ function loadIconIfNecessary(request, db, iconName) {
 }
 
 function loadIcon(request, db, iconName) {
-  return request({method: 'model.ir.ui.icon.search_read', params: [
-    [['name', '=', iconName]],
-    0,
-    1,
-    null,
-    ['icon'],
-  ]}).then(res => db.put('icons/'+iconName, res[0]))
+  return getIconSvg(request, iconName).then(icon => db.put('icons/'+iconName, icon))
 }
 
 function loadMenuItem(requestRpc, requestWfs, db, menuItemId, extent) {
