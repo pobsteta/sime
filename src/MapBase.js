@@ -67,6 +67,7 @@ export default compose(_ContentDelegate, _Destroyable, function(args) {
 		layers: [
 			baseLayer,
 		],
+		controls: [],
 		target: this._mapEl.domNode,
 	});
 }, {
