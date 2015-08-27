@@ -8,15 +8,12 @@ var FromEventValue = require('ksf/observable/FromEventValue')
 var Label = require('absolute/Label');
 var MappedValue = require('ksf/observable/MappedValue');
 var Reactive = require('absolute/Reactive');
-var VFlex = require('absolute/VFlex');
 var HFlex = require('absolute/HFlex');
 var VPile = require('absolute/VPile');
 var VScroll = require('absolute/VScroll');
 var Switch = require('absolute/Switch');
 var Align = require('absolute/Align');
-var Button = require('absolute/Button');
 var IconButton = require('./IconButton');
-var Space = require('absolute/Space');
 var Margin = require('absolute/Margin');
 
 var createFieldEditor = require('./fieldEditor')
@@ -229,39 +226,45 @@ var ItemCreator = compose(_ContentDelegate, _Destroyable, function (args) {
 */
 module.exports = compose(_Destroyable, _ContentDelegate, function(args) {
 	var self = this
+	// on permet d'injecter optionnellement la toolbar pour le cas de ListFormView qui doit injecter le bouton de bascule, alors que pour ItemView, il n'y a rien à injecter
+	var toolbar = args.toolbar || new VPile()
 	var viewDef = args.request({
 		"method": "model."+args.modelId+".fields_view_get",
 		"params": [args.formViewId || null, "form"],
 	});
-	this._content = new Reactive({
-		value: this._own(new MappedValue(args.activeItem, function(itemId) {
-			var formArgs = create(args, {
-				itemId: itemId,
-				viewDef: viewDef,
-			})
-			if (itemId === 'new') {
-				self._destroy('attrsChangedListener')
-				self._destroy('form')
-				return self._own(new ItemCreator(formArgs), 'form')
-			} else if (itemId) {
-				return new Reactive({
-					value: self._own(new FromEventValue(args.saver, 'attrsChanged', function () {
-						self._destroy('form')
-						return self._own(new ItemEditor(formArgs), 'form')
-					}), 'attrsChangedListener'),
-					content: new Switch(),
-					prop: 'content',
+	this._content = new HFlex([
+		new Reactive({
+			value: this._own(new MappedValue(args.activeItem, function(itemId) {
+				var formArgs = create(args, {
+					itemId: itemId,
+					viewDef: viewDef,
+					toolbar: toolbar,
 				})
-			} else {
-				self._destroy('form')
-				self._destroy('attrsChangedListener')
-				return new Align(
-					new Label().value("Aucun élément sélectionné").width(200).height(60),
-				'middle', 'middle');
-			}
-		})),
-		content: new Switch(),
-		prop: 'content',
-	})
+				if (itemId === 'new') {
+					self._destroy('attrsChangedListener')
+					self._destroy('form')
+					return self._own(new ItemCreator(formArgs), 'form')
+				} else if (itemId) {
+					return new Reactive({
+						value: self._own(new FromEventValue(args.saver, 'attrsChanged', function () {
+							self._destroy('form')
+							return self._own(new ItemEditor(formArgs), 'form')
+						}), 'attrsChangedListener'),
+						content: new Switch(),
+						prop: 'content',
+					})
+				} else {
+					self._destroy('form')
+					self._destroy('attrsChangedListener')
+					return new Align(
+						new Label().value("Aucun élément sélectionné").width(200).height(60),
+					'middle', 'middle');
+				}
+			})),
+			content: new Switch(),
+			prop: 'content',
+		}),
+		[toolbar.width(args.defaultButtonSize), 'fixed'],
+	])
 
 });
