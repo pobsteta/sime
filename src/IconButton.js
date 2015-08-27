@@ -18,7 +18,9 @@ export default compose(_ContentDelegate, _Evented, function() {
     return this
   },
   onAction: function(cb) {
-    this._content.onAction(cb)
+    this._content.onAction(() => {
+      if (!(this._disabled)) cb()
+    })
     return this
   },
   offAction: function(cb) {
@@ -26,6 +28,7 @@ export default compose(_ContentDelegate, _Evented, function() {
     return this
   },
   disabled: function(disabled) {
+    this._disabled = disabled
     this._img.styleProp('opacity', disabled ? 0.3 : 1)
     return this
   },

@@ -8,6 +8,8 @@ var _ContentDelegate = require('absolute/_ContentDelegate');
 var _Destroyable = require('ksf/base/_Destroyable');
 var Value = require('ksf/observable/Value')
 var MappedValue = require('ksf/observable/MappedValue')
+var CompositeValue = require('ksf/observable/CompositeValue')
+var ValueFromPromise = require('ksf/observable/ValueFromPromise')
 var Reactive = require('absolute/Reactive')
 var Promised = require('absolute/Promised')
 var Label = require('absolute/Label');
@@ -39,14 +41,20 @@ var pageSize = 100
 }
 */
 module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
-	var container = new VPile();
+	var container = new VPile()
+	var fromItem = new Value(0)
+	var itemsCount = args.request({method: 'model.'+args.modelId+'.search_count', params: [[]]})
+	var fromItemAndItemsCount = new CompositeValue({
+		fromItem: fromItem,
+		itemsCount: new ValueFromPromise(itemsCount),
+	})
 	var listArgs = create(args, {
 		container: container,
 		listViewDef: args.request({
 			"method": "model."+args.modelId+".fields_view_get",
 			"params": [args.listViewId || null, "tree"],
 		}),
-		fromItem: new Value(0),
+		fromItem: fromItem,
 	})
 
 	var refreshList = function () {
@@ -69,28 +77,42 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 				args.activeItem.value('new')
 				if (args.onAction) {args.onAction()}
 			}),
-			new IconButton().icon(iconPrevious).title("Page précédente").disabled(args.fromItem === 0).onAction(() => {
-				changeValue(listArgs.fromItem, add(-pageSize))
-				refreshList(listArgs)
-			}).height(args.defaultButtonSize),
+			new Reactive({
+				value: new MappedValue(fromItem, not),
+				content: new IconButton().icon(iconPrevious).title("Page précédente").disabled(args.fromItem === 0).onAction(() => {
+						changeValue(fromItem, add(-pageSize))
+						refreshList(listArgs)
+					}).height(args.defaultButtonSize),
+				prop: 'disabled',
+			}),
 			new Reactive({
 				content: new Label().hAlign('center'),
-				value: new MappedValue(listArgs.fromItem, seq(add(1), toString)),
+				value: new MappedValue(fromItem, seq(add(1), toString)),
 			}).height(args.defaultButtonSize/2),
 			new Label().value("à").hAlign('center').height(args.defaultButtonSize/2),
 			new Reactive({
 				content: new Label().hAlign('center'),
-				value: new MappedValue(listArgs.fromItem, seq(add(1), add(pageSize), toString)),
+				value: new MappedValue(fromItemAndItemsCount, seq(call2(min,
+					seq(get('fromItem'), add(pageSize)),
+					get('itemsCount')
+				), ifNotNull(toString))),
 			}).height(args.defaultButtonSize/2),
 			new Label().value("sur").hAlign('center').height(args.defaultButtonSize/2),
 			new Promised({
 				content: new Label().hAlign('center').height(args.defaultButtonSize/2),
-				value: args.request({method: 'model.'+args.modelId+'.search_count', params: [[]]}).then(toString),
+				value: itemsCount.then(toString),
 			}),
-			new IconButton().icon(iconNext).title("Page suivante").onAction(() => {
-				changeValue(listArgs.fromItem, add(pageSize))
-				refreshList(listArgs)
-			}).height(args.defaultButtonSize),
+			new Reactive({
+				value: new MappedValue(fromItemAndItemsCount, call2(gte,
+					seq(get('fromItem'), add(pageSize)),
+					get('itemsCount')
+				)),
+				content: new IconButton().icon(iconNext).title("Page suivante").onAction(() => {
+					changeValue(fromItem, add(pageSize))
+					refreshList(listArgs)
+				}).height(args.defaultButtonSize),
+				prop: 'disabled',
+			}),
 		]).width(args.defaultButtonSize), 'fixed'],
 	]);
 
@@ -141,13 +163,34 @@ function displayList (args) {
 function toString(argument) {
 	return argument.toString()
 }
+function not (argument) {
+	return !argument
+}
+function gte(a, b) {
+	return a >= b
+}
+function min(a, b) {
+	return a < b ? a : b
+}
+
+
 function add(qty) {
 	return (val) => val + qty
+}
+function get(prop) {
+	return (obj) => obj[prop]
 }
 function seq() {
 	var fns = Array.prototype.slice.call(arguments)
 	return (startVal) => fns.reduce((val, fn) => fn(val), startVal)
 }
+function call2(fn, fn1, fn2) {
+	return (val) => fn(fn1(val), fn2(val))
+}
+function ifNotNull(fn) {
+	return (val) => val !== null ? fn(val) : null
+}
+
 function changeValue(observable, fn) {
 	observable.value(fn(observable.value()))
 }
