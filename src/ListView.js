@@ -41,15 +41,17 @@ var pageSize = 100
 }
 */
 module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
-	var container = new VPile()
+	var query = args.query || [];
 	var fromItem = new Value(0)
-	var itemsCount = args.request({method: 'model.'+args.modelId+'.search_count', params: [[]]})
+	var itemsCount = args.request({method: 'model.'+args.modelId+'.search_count', params: [query]})
 	var fromItemAndItemsCount = new CompositeValue({
 		fromItem: fromItem,
 		itemsCount: new ValueFromPromise(itemsCount),
 	})
+	var container = new VPile()
 	var listArgs = create(args, {
 		container: container,
+		query: query,
 		listViewDef: args.request({
 			"method": "model."+args.modelId+".fields_view_get",
 			"params": [args.listViewId || null, "tree"],
@@ -124,7 +126,6 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 });
 
 function displayList (args) {
-	var query = args.query || [];
 	var modelId = args.modelId;
 	var request = args.request;
 
@@ -132,7 +133,7 @@ function displayList (args) {
 		var arch = new DOMParser().parseFromString(viewDef.arch, 'application/xml')
 		var fieldIds = getFieldsFromView(arch)
 		return request({method: "model."+modelId+".search_read", params: [
-			query,
+			args.query,
 			args.fromItem.value(),
 			pageSize,
 			null,
