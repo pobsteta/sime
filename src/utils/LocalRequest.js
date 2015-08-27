@@ -9,22 +9,30 @@ function searchItems(db, prefix, params, readValue) {
   if (Array.isArray(query[0])) {
     query = query[0]
   }
+  var offset = params[1] || 0
+  var limit = params[2] || Infinity
   var queryProp = query[0]
   var queryOperand = query[2]
   return new Promise((resolve, reject) => {
+    var start = Date.now()
     var result = []
+    var index = 0
     db.createValueStream({
       gte: prefix,
       lte: prefix+'\uffff',
-      limit: params[2],
+      //limit: offset+limit,
     })
       .on('data', function(value) {
-          if (get(value, queryProp) === queryOperand) {
-            result.push(readValue ? value : get(value, 'id'))
+          if (index >= offset && result.length < limit) {
+            if (get(value, queryProp) === queryOperand) {
+              result.push(readValue ? value : get(value, 'id'))
+            }
           }
+          index++
       })
       .on('error', reject)
       .on('end', function () {
+        console.log('search time', prefix, Date.now()-start, params)
         resolve(result)
       })
   })
@@ -91,6 +99,9 @@ function modelRequest(db, path, params) {
       break;
     case 'search_read':
       return searchItems(db, prefix+'items/', params, true)
+      break;
+    case 'search_count':
+      return searchItems(db, prefix+'items/', params).then((ids)=>ids.length)
       break;
     case 'read':
       return readItems(db, prefix+'items/', params)
