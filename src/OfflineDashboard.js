@@ -172,7 +172,7 @@ export default compose(_ContentDelegate, function(args) {
           }).height(50), 'fixed'],
           [new HFlex([
             new Label().value("Requête"),
-            new Label().value("Erreur"),
+            new Label().value("Message"),
             new Label().value("Action"),
           ]).height(args.defaultButtonSize), 'fixed'],
           new VScroll(new ReactiveOrderedBranch({
@@ -188,7 +188,7 @@ export default compose(_ContentDelegate, function(args) {
                 ]),
                 new Reactive({
                   value: new MappedValue(new Leaf(requestsStore, key+'/lastTry'), val =>
-                    val ? val.time + ' : '+val.response.error : "en attente"
+                    val ? val.time + ' : '+JSON.stringify(val.response) : "en attente"
                   ),
                   content: new Label(),
                 }),
