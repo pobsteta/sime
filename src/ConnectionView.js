@@ -64,7 +64,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 			attrs: {},
 		},
 	});
-	commonArgs.saver = new Saver(commonArgs)
+	var saver = commonArgs.saver = new Saver(commonArgs)
 	var mainArea = new Switch();
 	var message = new Label();
 	var panelContainer = this._content = new SidePanelContainer({
@@ -83,16 +83,20 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 				})).width(300),
 				[new HFlex([
 					args.online ?
-						new IconButton().icon(icons.offline).title("Passer hors ligne").onAction(args.goOffline):
-						new IconButton().icon(icons.online).title("Passer en ligne").onAction(args.goOnline),
-					new IconButton().icon(icons.config).title("Gestion du mode hors-ligne").onAction(function() {
-						mainArea.content(self._own(new OfflineDashboard(create(commonArgs, {
-							offlineMenuItemId: args.offlineMenuItemId,
-							message: message,
-						})), 'mainView'));
-						panelContainer.focusArea('main');
-					}),
-					new IconButton().icon(icons.logout).title("Déconnexion").onAction(args.logout),
+						new IconButton().icon(icons.offline).title("Passer hors ligne")
+							.onAction(saver.wrapCb(args.goOffline)):
+						new IconButton().icon(icons.online).title("Passer en ligne")
+							.onAction(saver.wrapCb(args.goOnline)),
+					new IconButton().icon(icons.config).title("Gestion du mode hors-ligne")
+						.onAction(saver.wrapCb(function() {
+								mainArea.content(self._own(new OfflineDashboard(create(commonArgs, {
+								offlineMenuItemId: args.offlineMenuItemId,
+								message: message,
+							})), 'mainView'));
+							panelContainer.focusArea('main');
+						})),
+					new IconButton().icon(icons.logout).title("Déconnexion")
+						.onAction(saver.wrapCb(args.logout)),
 				]).height(args.defaultButtonSize), 'fixed'],
 				[message.height(30), 'fixed'],
 			]),

@@ -42,4 +42,8 @@ module.exports = compose(_Evented, function (args) {
     cancelListeners.forEach(callFn)
   },
   emit: _Evented._emit,
+  // helper
+  wrapCb: function (cb) {
+    return () => this.ensureChangesAreSaved().then(cb)
+  },
 })
