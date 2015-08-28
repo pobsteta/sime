@@ -43,13 +43,13 @@ export default compose(_ContentDelegate, function(args) {
   var downloadProgress = new Value('')
 
   var dashboard = new VScroll(new VPile().content([
-    new Label().value("Gestion des données hors-ligne").font({size: '18px', weight: 'bold'}).hAlign('center').height(args.defaultButtonSize),
+    new Label().value("Paramètres de l'application").font({size: '18px', weight: 'bold'}).hAlign('center').height(args.defaultButtonSize),
     new HFlex([
       [new Label().value("Version de l'application").width(150).color('gray'), 'fixed'],
       new Label().value('0.4'),
     ]).height(args.defaultButtonSize),
 
-    new Label().value("Périmètre des données").font({style: 'italic'}).height(50),
+    new Label().value("Périmètre des données hors ligne").font({style: 'italic'}).height(50),
     new HFlex([
       [new Label().value("Elément de menu").width(150).color('gray'), 'fixed'],
       new Reactive({

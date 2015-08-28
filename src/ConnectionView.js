@@ -87,7 +87,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 							.onAction(saver.wrapCb(args.goOffline)):
 						new IconButton().icon(icons.offline).title("Passer en ligne")
 							.onAction(saver.wrapCb(args.goOnline)),
-					new IconButton().icon(icons.config).title("Gestion du mode hors-ligne")
+					new IconButton().icon(icons.config).title("Paramètres de l'application")
 						.onAction(saver.wrapCb(function() {
 								mainArea.content(self._own(new OfflineDashboard(create(commonArgs, {
 								offlineMenuItemId: args.offlineMenuItemId,
