@@ -26,6 +26,10 @@ import create from 'lodash/object/create'
 import Store from 'ksf/observable/deep/Store'
 import KeyOrderedBranch from 'ksf/observable/deep/KeyOrderedBranch'
 
+import IconButton from './IconButton'
+import * as icons from './icons/index'
+
+
 export default compose(_ContentDelegate, function(args) {
   var requestsDb = sublevel(args.localDb, '_requests')
   var requestsStore = new KeyOrderedBranch(new Store(), '')
@@ -73,7 +77,7 @@ export default compose(_ContentDelegate, function(args) {
         }),
         content: new Label().value(),
       }),
-      [new Button().value("Définir").disabled(!args.online).width(100).onAction(() => {
+      [new IconButton().icon(icons.editFind).disabled(!args.online).width(args.defaultButtonSize).onAction(() => {
         this._content.content(new MenuBase(create(args, {
           onItemSelect: (menuItemId) => {
             args.offlineMenuItemId.value(menuItemId)
@@ -89,7 +93,7 @@ export default compose(_ContentDelegate, function(args) {
         value: new MappedValue(args.offlineExtent, extent => extent ? extent.toString() : "Aucune"),
         content: new Label(),
       }),
-      [new Button().value("Définir").disabled(!args.online).width(100).onAction(() => {
+      [new IconButton().icon(icons.editFind).disabled(!args.online).width(args.defaultButtonSize).onAction(() => {
         var map = new MapBase()
         this._content.content(new VFlex([
           map,
@@ -115,7 +119,7 @@ export default compose(_ContentDelegate, function(args) {
         value: args.offlineDataStatus,
         content: new Label(),
       }),
-      [new Button().value("Télécharger maintenant").disabled(!args.online).onAction(()=> {
+      [new IconButton().icon(icons.save).disabled(!args.online).onAction(()=> {
         downloadProgress.value("Téléchargement des données en cours...")
         args.offlineDataStatus.value("Aucune données")
         var db = args.localDb
@@ -134,7 +138,7 @@ export default compose(_ContentDelegate, function(args) {
             }
           )
         })
-      }).width(200), 'fixed'],
+      }).width(args.defaultButtonSize), 'fixed'],
     ]).height(args.defaultButtonSize),
 
     [new Reactive({
@@ -152,19 +156,19 @@ export default compose(_ContentDelegate, function(args) {
         }),
         content: new Label(),
       }),
-      [new Button().value("Envoyer maintenant").disabled(!args.online).onAction(function () {
+      [new IconButton().icon(icons.mailSendReceive).disabled(!args.online).onAction(function () {
         args.message.value("Envoi en cours...")
         upload(requestsStore, args.request, args.wfsRequest).then(
           ()=>args.message.value("Envoi terminé"),
           ()=>args.message.value("Echec lors de l'envoi")
         )
-      }).width(200), 'fixed'],
+      }).width(args.defaultButtonSize), 'fixed'],
     ]).height(args.defaultButtonSize),
     new HFlex([
       new Space(),
-      [new Button().value("Voir les requêtes en attente").onAction(() => {
+      [new IconButton().icon(icons.faceGlasses).onAction(() => {
         this._content.content(new VFlex([
-          [new Button().value('retour').onAction(
+          [new IconButton().icon(icons.previous).onAction(
             () => this._content.content(dashboard)
           ).height(args.defaultButtonSize), 'fixed'],
           [new Space().height(20), 'fixed'],
@@ -205,7 +209,7 @@ export default compose(_ContentDelegate, function(args) {
               pile.remove(key)
             },
           })),
-          [new Button().value("Envoyer maintenant").disabled(!args.online).onAction(function () {
+          [new IconButton().icon(icons.mailSendReceive).disabled(!args.online).onAction(function () {
             args.message.value("Envoi en cours...")
             upload(requestsStore, args.request, args.wfsRequest).then(
               ()=>args.message.value("Envoi terminé"),
@@ -214,7 +218,7 @@ export default compose(_ContentDelegate, function(args) {
           }).height(args.defaultButtonSize), 'fixed'],
 
         ]))
-      }).width(200), 'fixed'],
+      }).width(args.defaultButtonSize), 'fixed'],
     ]).height(args.defaultButtonSize),
   ]))
   this._content = new Switch().content(dashboard)

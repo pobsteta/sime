@@ -17,6 +17,9 @@ export var online = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/n
 export var offline = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/network-offline.svg')
 export var config = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/applications-system.svg')
 export var logout = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/system-log-out.svg')
+export var editFind = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/edit-find.svg')
+export var faceGlasses = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/face-glasses.svg')
+export var mailSendReceive = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/mail-send-receive.svg')
 
 export var gpsLock = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/ic_gps_fixed.svg')
 export var chevronRight = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/ic_chevron_right.svg')
