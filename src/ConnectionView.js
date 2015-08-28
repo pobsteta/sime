@@ -83,9 +83,9 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 				})).width(300),
 				[new HFlex([
 					args.online ?
-						new IconButton().icon(icons.offline).title("Passer hors ligne")
+						new IconButton().icon(icons.online).title("Passer hors ligne")
 							.onAction(saver.wrapCb(args.goOffline)):
-						new IconButton().icon(icons.online).title("Passer en ligne")
+						new IconButton().icon(icons.offline).title("Passer en ligne")
 							.onAction(saver.wrapCb(args.goOnline)),
 					new IconButton().icon(icons.config).title("Gestion du mode hors-ligne")
 						.onAction(saver.wrapCb(function() {
