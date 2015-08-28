@@ -1,3 +1,4 @@
+var fs = require('fs')
 var create = require('lodash/object/create');
 var when = require('when');
 var compose = require('ksf/utils/compose');
@@ -13,6 +14,7 @@ var Switch = require('absolute/Switch');
 var Label = require('absolute/Label');
 var LabelInput = require('absolute/LabelInput');
 var Button = require('absolute/Button');
+var El = require('absolute/Element')
 
 var levelup = require('levelup')
 var leveljs = require('level-js')
@@ -209,6 +211,7 @@ module.exports = compose(_ContentDelegate, function(args) {
 			var connectionParamsValue = connectionParams.value();
 			var host, dbName, username, passwordInput, message;
 			appContainer.content(new Align(new VPile().content([
+        new El('img').prop('src', 'data:image/png;base64,'+fs.readFileSync(__dirname + '/bioecoforest-logotype.jpg', 'base64')).height(92),
 				host = new LabelInput().placeholder('host').height(30).value(connectionParamsValue.host),
         dbName = new LabelInput().placeholder('database').height(30).value(connectionParamsValue.dbName),
 				username = new LabelInput().placeholder('username').height(30).value(connectionParamsValue.username),
