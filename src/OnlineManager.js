@@ -14,8 +14,8 @@ export default compose(_ContentDelegate, _Destroyable, function(args) {
 
 	var online = new PersistableValue('online', true) // true or false
 	var offlineMenuItemId = new PersistableValue('offlineMenuItemId', null)
-	var offlineExtent = new PersistableValue('offlineExtent', null)
 	var offlineDataStatus = new PersistableValue('offlineDataStatus', "Aucune données")
+	var mapExtent = new PersistableValue('mapExtent', [272570.7108623652, 6242518.1093190815, 275680.7424507183, 6245532.594622077])
 
 	this._content = new Switch()
 
@@ -24,7 +24,7 @@ export default compose(_ContentDelegate, _Destroyable, function(args) {
     var view
 		var commonArgs = create(args, {
 			offlineMenuItemId: offlineMenuItemId,
-			offlineExtent: offlineExtent,
+			mapExtent: mapExtent,
 			offlineDataStatus: offlineDataStatus,
 		})
 		if (onlineValue) {

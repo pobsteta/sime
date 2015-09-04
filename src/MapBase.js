@@ -8,6 +8,7 @@ var Elmt = require('absolute/Element');
 export default compose(_ContentDelegate, _Destroyable, function(args) {
 	this._args = args;
 	this._content = this._mapEl = new Elmt();
+	this._initialized = false;
 
 	var baseLayer = new ol.layer.Tile(),
 		mbtilesFileName = 'tryton.mbtiles';
@@ -60,10 +61,7 @@ export default compose(_ContentDelegate, _Destroyable, function(args) {
 	}
 
 	this.olMap = new ol.Map({
-		view: new ol.View({
-			center: ol.proj.transform([660493.0, 6857760.7], 'EPSG:2154', 'EPSG:3857'),
-			zoom: 15,
-		}),
+		view: new ol.View(),
 		layers: [
 			baseLayer,
 		],
@@ -76,6 +74,10 @@ export default compose(_ContentDelegate, _Destroyable, function(args) {
 			h = this._mapEl.height();
 		if (w && h) {
 			this.olMap.setSize([w, h]);
+			if (!this._initialized) {
+				this.olMap.getView().fit(this._args.extent, this.olMap.getSize(), { nearest: true })
+				this._initialized = true
+			}
 		}
 	},
 	height: function(h) {

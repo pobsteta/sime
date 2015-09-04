@@ -90,24 +90,21 @@ export default compose(_ContentDelegate, function(args) {
     new HFlex([
       [new Label().value("Zone géographique").color('gray').width(150), 'fixed'],
       new Reactive({
-        value: new MappedValue(args.offlineExtent, extent => extent ? extent.toString() : "Aucune"),
+        value: new MappedValue(args.mapExtent, extent => extent ? extent.toString() : "Aucune"),
         content: new Label(),
       }),
       [new IconButton().icon(icons.editFind).disabled(!args.online).width(args.defaultButtonSize).onAction(() => {
-        var map = new MapBase()
+        var map = new MapBase({
+          extent: args.mapExtent.value(),
+        })
         this._content.content(new VFlex([
           map,
           [new Button().value("OK").onAction(() => {
-            args.offlineExtent.value(map.olMap.getView().calculateExtent(map.olMap.getSize()))
+            args.mapExtent.value(map.olMap.getView().calculateExtent(map.olMap.getSize()))
             // go back
             this._content.content(dashboard)
           }).height(args.defaultButtonSize)],
         ]));
-        // initialize map with saved extent
-        var extent = args.offlineExtent.value()
-        if (extent) {
-          map.olMap.getView().fit(extent, map.olMap.getSize(), { nearest: true })
-        }
       }), 'fixed'],
     ]).height(args.defaultButtonSize),
 
@@ -126,7 +123,7 @@ export default compose(_ContentDelegate, function(args) {
         clearDb(db).then(() => {
           download(args.request, args.wfsRequest, db,
             args.offlineMenuItemId.value(),  // menuID
-            args.offlineExtent.value()  // extent in EPSG:3857 (Mercator)
+            args.mapExtent.value()  // extent in EPSG:3857 (Mercator)
           ).then(
             () => {
               args.offlineDataStatus.value(new Date().toISOString())

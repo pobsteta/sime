@@ -70,7 +70,9 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	var followPosition = this._followPosition = new Value(true)
 
 	this._content = new ZPile().content([
-		this._map = new MapBase(),
+		this._map = new MapBase({
+			extent: args.mapExtent.value(),
+		}),
 		new Align(new VPile().content([
 			new Reactive({
 				value: followPosition,
@@ -266,6 +268,11 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 			args.activeItem.value(null);
 		}
 	}.bind(this));
+
+	this.olMap.on('moveend', () => {
+		// update mapExtent value
+		args.mapExtent.value(this.olMap.getView().calculateExtent(this.olMap.getSize()))
+	})
 
 	this._own(args.activeItem.onChange(this._setActiveId.bind(this)));
 	this._wfsSource.on('addfeature', this._refreshActiveHighlighting.bind(this));

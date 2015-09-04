@@ -18,6 +18,8 @@ var ItemView = require('./ItemView');
 
 import {previous as prevIcon} from './icons/index'
 
+import ol from './openlayers'
+
 var PathElement = compose(_ContentDelegate, function(args) {
 	var modelName;
 	this._content = new Background(new HPile().content([
@@ -77,7 +79,17 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 
 	this._nextCollection(args.modelId, null, args.listViewId, args.formViewId);
 }, {
+	_getNextMapExtentValue: function() {
+		var initExtent
+		if (this._stack.length) {
+			initExtent = this._stack[this._stack.length - 1].params.mapExtent.value()
+		} else {
+			initExtent = this._args.mapExtent.value()
+		}
+		return new Value(initExtent)
+	},
 	_nextCollection: function(modelId, query, listViewId, formViewId) {
+		var mapExtent = this._getNextMapExtentValue()
 		var args = create(this._args, {
 			modelId: modelId,
 			query: query,
@@ -86,24 +98,27 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 			activeItem: new Value(),
 			nextCollection: this._nextCollection.bind(this),
 			nextItem: this._nextItem.bind(this),
+			mapExtent: mapExtent,
 		});
 		var view = new CollectionView(args);
 		var pathElement = new PathElement(args);
 
-		this._next(view, pathElement, {modelId: modelId, query: query});
+		this._next(view, pathElement, {modelId: modelId, query: query, mapExtent: mapExtent});
 	},
 	_nextItem: function(modelId, itemId, formViewId) {
+		var mapExtent = this._getNextMapExtentValue()
 		var args = create(this._args, {
 			modelId: modelId,
 			formViewId: formViewId,
 			activeItem: new Value(itemId),
 			nextCollection: this._nextCollection.bind(this),
 			nextItem: this._nextItem.bind(this),
+			mapExtent: mapExtent,
 		});
 		var view = new ItemView(args);
 		var pathElement = new PathElement(args);
 
-		this._next(view, pathElement, {modelId: modelId, itemId: itemId});
+		this._next(view, pathElement, {modelId: modelId, itemId: itemId, mapExtent: mapExtent});
 	},
 	_next: function(view, pathElement, params) {
 		var key = 'item' + this._stack.length
