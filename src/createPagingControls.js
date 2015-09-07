@@ -31,7 +31,7 @@ export default function Pager(args) {
       content: new Label().hAlign('center'),
       value: new MappedValue(fromItem, seq(add(1), toString)),
     }).height(args.defaultButtonSize/3),
-    new Label().value("à").hAlign('center').height(args.defaultButtonSize/3),
+    new Label().value("-").hAlign('center').height(args.defaultButtonSize/3),
     new Reactive({
       content: new Label().hAlign('center'),
       value: new MappedValue(fromItemAndItemsCount, seq(call2(min,
@@ -39,7 +39,7 @@ export default function Pager(args) {
         get('itemsCount')
       ), ifNotNull(toString))),
     }).height(args.defaultButtonSize/3),
-    new Label().value("sur").hAlign('center').height(args.defaultButtonSize/3),
+    new Label().value("/").hAlign('center').height(args.defaultButtonSize/3),
     new Promised({
       content: new Label().hAlign('center').height(args.defaultButtonSize/3),
       value: itemsCount.then(toString),
