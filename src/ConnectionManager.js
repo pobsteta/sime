@@ -256,7 +256,8 @@ module.exports = compose(_ContentDelegate, function(args) {
 						message.value('login error');
 					});
 				}),
-				message = new Label().height(30),
+        new Label().value("By Bio Eco Forests").hAlign("center").height(30),
+        message = new Label().hAlign('center').height(30),
 			]).width(300), 'middle', 'middle'));
 		}
 	});
