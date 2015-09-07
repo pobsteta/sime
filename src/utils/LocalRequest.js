@@ -129,6 +129,11 @@ function irModelRequest(db, method, params) {
       var path = 'models/'+modelId+'/modelDef'
       return db.get(path).then(modelDef => [modelDef.id])
       break;
+    case 'search_read':
+      var modelId = params[0][0][2]
+      var path = 'models/'+modelId+'/modelDef'
+      return db.get(path).then(modelDef => [modelDef])
+      break;
     default:
       console.warn("irModelRequest not implemented", method, params)
       return Promise.reject("Not implemented")

@@ -18,8 +18,6 @@ var ItemView = require('./ItemView');
 
 import {previous as prevIcon} from './icons/index'
 
-import ol from './openlayers'
-
 var PathElement = compose(_ContentDelegate, function(args) {
 	var modelName;
 	this._content = new Background(new HPile().content([
@@ -44,11 +42,15 @@ var PathElement = compose(_ContentDelegate, function(args) {
 		}),
 	])).width(220).color('lightgrey').border('1px solid black');
 
-	// TODO : display model name
-	// args.request({ method: 'model.read', params: [
-	// ]}).then(function(res) {
-	// 	modelName.value(res.modelName);
-	// });
+	args.request({ method: 'model.ir.model.search_read', params: [
+		[['model', '=', args.modelId]],
+		0,
+		1,
+		null,
+		['rec_name'],
+	]}).then(function(res) {
+		modelName.value(res[0]['rec_name']);
+	});
 });
 
 
