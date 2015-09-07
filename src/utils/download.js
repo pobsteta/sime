@@ -1,8 +1,9 @@
 import assign from 'lodash/object/assign'
+import countBy from 'lodash/collection/countBy'
 import getQgsFile from './getQgsFile'
 import getMenuChildren from './getMenuChildren'
 import getFieldIdsToRequest from './getFieldIdsToRequest'
-import {sublevel, batch, put, del} from './db'
+import {sublevel, batch, put, del, get as getItem} from './db'
 import getIconSvg from './getIconSvg'
 
 // set a limit to prevent accidental huge requests
@@ -12,14 +13,13 @@ function first (array) {
   return array.length ? array[0] : null
 }
 
-function get (prop) {
+function get(prop) {
   return function (obj) {
     return obj && obj[prop]
   }
 }
 
 
-// remplace le contenu de la db par les items
 function storeItems (db, items) {
     return batch(db, items.map(item => {
       return {type: 'put', key: item.id, value: item}
@@ -133,10 +133,36 @@ function getModelFields(requestRpc, modelDbId) {
   ]})
 }
 
+function loadItemAttachementCounts(request, db, modelId) {
+  return request({method: 'model.ir.attachment.search_read', params: [
+    [["resource", ">=", modelId+","], ["resource", "<=", modelId+",a"]], // permet de récupérer en une requête toutes les pièces jointes de tous les éléments d'un model
+    0,
+    10000, // pas de problème de taille de réponse
+    null,
+    ['resource'],
+  ]}).then((resp) =>
+    countBy(resp, (attachment) =>
+      attachment.resource && attachment.resource.split(',')[1] // get itemId
+    )
+  ).then((counts) =>
+    batch(sublevel(db, 'itemAttachmentCounts'), Object.keys(counts).map(itemId => {
+      return {type: 'put', key: itemId, value: counts[itemId]}
+    }))
+  )
+}
+
+function loadModelIfNecessary(requestRpc, requestWfs, modelsDb, modelId, extent) {
+  return getItem(modelsDb, modelId+'/modelDef').then(
+    () => Promise.resolve(), // ce model a déjà été chargé
+    () => loadModel(requestRpc, requestWfs, modelsDb, modelId, extent) // ce model n'a pas encore été chargé
+  )
+}
+
 function loadModel (requestRpc, requestWfs, modelsDb, modelId, extent) {
   var db = sublevel(modelsDb, modelId)
   return Promise.all([
     loadViews(requestRpc, sublevel(db, 'views'), modelId),
+    loadItemAttachementCounts(requestRpc, db, modelId),
     getModelDef(requestRpc, modelId).then(modelDef => Promise.all([
       put(db, 'modelDef', modelDef),
       put(modelsDb, 'dbIds/'+modelDef.id, modelId), // index modelDbId > modelId
@@ -166,7 +192,7 @@ function loadMenuItemAction(requestRpc, requestWfs, db, menuItemId, extent) {
       var modelId = action['res_model']
       return Promise.all([
         put(db, 'menuItemActions/'+menuItemId, action),
-        loadModel(requestRpc, requestWfs, sublevel(db, 'models'), modelId, extent),
+        loadModelIfNecessary(requestRpc, requestWfs, sublevel(db, 'models'), modelId, extent),
       ])
     } else {
       return Promise.resolve(true)

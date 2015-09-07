@@ -1,5 +1,6 @@
 var compose = require('ksf/utils/compose');
 var on = require('ksf/utils/on')
+var ValueFromPromise = require('ksf/observable/ValueFromPromise')
 var create = require('lodash/object/create');
 
 var _ContentDelegate = require('absolute/_ContentDelegate');
@@ -75,6 +76,12 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 		new IconButton().icon(icons.cancel).title("Annuler les modifications").height(args.defaultButtonSize).onAction(this._cancel.bind(this)),
 		new IconButton().icon(icons.destroy).title("Supprimer").height(args.defaultButtonSize).onAction(this._destroyItem.bind(this)),
 		new IconButton().icon(icons.attachment).title("Ajouter une photo").height(args.defaultButtonSize).onAction(this._addAttachement.bind(this)),
+		new Reactive({
+			content: new Label(),
+			value: new ValueFromPromise(args.request({method: 'model.ir.attachment.search_count', params: [
+				[["resource", "=", args.modelId+","+args.itemId]],
+			]}).then(count =>	count ? count.toString() : "0")),
+		}).height(args.defaultButtonSize),
 	]
 	tools.forEach((btn, index) => args.toolbar.add('tool' + index, btn))
 	// remove buttons on destroy
@@ -148,7 +155,10 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 						'base64': imageData,
 					},
 				}],
-			]}).then(() => args.message.value("Photo enregistrée"))
+			]}).then(() => {
+				args.message.value("Photo enregistrée")
+				args.saver.emit('attrsChanged')
+			})
 		}, (err) => {
 			args.message.value("Erreur lors de la prise de photo: "+ err)
 		}, options)

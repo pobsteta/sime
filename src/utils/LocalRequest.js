@@ -158,7 +158,7 @@ function irModelFieldRequest(db, method, params) {
 function attachmentRequest(db, method, params) {
   switch (method) {
     case 'search_read':
-      // ne supporte que la récupération du qgsFile
+      // ne supporte que la récupération du qgsFile sur un model
       var modelDbId = params[0][0][2].split(',')[1]
       return db.get('models/dbIds/'+modelDbId).then(modelId =>
         db.get('models/'+modelId+'/qgsFile')
@@ -173,11 +173,32 @@ function attachmentRequest(db, method, params) {
     case 'create':
       var attachment = params[0][0]
       var [modelId, itemId] = attachment.resource.split(',')
-      return db.put('models/'+modelId+'/itemAttachments/'+itemId+'/'+attachment.name, attachment)
+      return Promise.all([
+        db.put('models/'+modelId+'/itemAttachments/'+itemId+'/'+attachment.name, attachment), // store attachement
+        // update item attachements count
+        getItemAttachementCount(db, modelId, itemId).then(count =>
+          db.put('models/'+modelId+'/itemAttachmentCounts/'+itemId, count+1)
+        ),
+      ])
+    // count sur les items uniquement
+    case 'search_count':
+      var [modelId, itemId] = params[0][0][2].split(',')
+      return getItemAttachementCount(db, modelId, itemId)
     default:
       console.warn("attachmentRequest not implemented", method, params)
       return Promise.reject("Not implemented")
   }
+}
+
+// transforme un notFound en 0
+function getItemAttachementCount (db, modelId, itemId) {
+  return db.get('models/'+modelId+'/itemAttachmentCounts/'+itemId).catch(err => {
+    if (err.notFound) {
+      return 0
+    } else {
+      throw err
+    }
+  })
 }
 
 

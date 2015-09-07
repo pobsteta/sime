@@ -6,6 +6,10 @@ export function put(db, key, value) {
   return db.put ? db.put(key, value) : put(db.db, db.prefix+key, value)
 }
 
+export function get(db, key) {
+  return db.get ? db.get(key) : get(db.db, db.prefix+key)
+}
+
 export function del(db, key) {
   return db.del ? db.del(key) : del(db.db, db.prefix+key)
 }
