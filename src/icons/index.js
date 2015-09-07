@@ -20,6 +20,8 @@ export var logout = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/s
 export var editFind = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/edit-find.svg')
 export var faceGlasses = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/face-glasses.svg')
 export var mailSendReceive = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/mail-send-receive.svg')
+export var listAdd = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/list-add.svg')
+export var listRemove = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/list-remove.svg')
 
 export var gpsLock = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/ic_gps_fixed.svg')
 export var chevronRight = 'data:image/svg+xml;utf8,' + fs.readFileSync(__dirname + '/ic_chevron_right.svg')
