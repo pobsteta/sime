@@ -76,13 +76,16 @@ function isRequestAboutLocalId(req, itemId) {
     return false
   }
   if (req.type === 'wfs') {
-
+    return req.request.params.itemId === itemId
   }
 }
 
 function updateRequestWithServerId(requestsStore, reqId, req, serverId) {
   if (req.type === 'rpc') {
     req.request.params[0][0] = serverId
-    requestsStore.change(reqId+'/request', req)
   }
+  if (req.type === 'wfs') {
+    req.request.params.itemId = serverId
+  }
+  requestsStore.change(reqId+'/request', req)
 }
