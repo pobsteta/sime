@@ -6,12 +6,12 @@ import Clickable from 'absolute/Clickable'
 import Margin from 'absolute/Margin'
 import Background from 'absolute/Background'
 
-export default compose(_ContentDelegate, _Evented, function() {
+export default compose(_ContentDelegate, _Evented, function(args) {
   this._content = new Clickable(
     new Background(
       new Margin(this._img = new Element('img'),
         10, 10))
-      .color('white'))
+      .color(args && args.backgroudColor || 'white'))
 }, {
   icon: function(url) {
     this._img.attr('src', url)

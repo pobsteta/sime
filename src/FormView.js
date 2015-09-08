@@ -11,6 +11,7 @@ var MappedValue = require('ksf/observable/MappedValue');
 var Reactive = require('absolute/Reactive');
 var HFlex = require('absolute/HFlex');
 var VPile = require('absolute/VPile');
+var ZPile = require('absolute/ZPile');
 var VScroll = require('absolute/VScroll');
 var Switch = require('absolute/Switch');
 var Align = require('absolute/Align');
@@ -75,13 +76,15 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 		new IconButton().icon(icons.save).title("Enregistrer").height(args.defaultButtonSize).onAction(this._save.bind(this)),
 		new IconButton().icon(icons.cancel).title("Annuler les modifications").height(args.defaultButtonSize).onAction(this._cancel.bind(this)),
 		new IconButton().icon(icons.destroy).title("Supprimer").height(args.defaultButtonSize).onAction(this._destroyItem.bind(this)),
-		new IconButton().icon(icons.attachment).title("Ajouter une photo").height(args.defaultButtonSize).onAction(this._addAttachement.bind(this)),
-		new Reactive({
-			content: new Label(),
-			value: new ValueFromPromise(args.request({method: 'model.ir.attachment.search_count', params: [
-				[["resource", "=", args.modelId+","+args.itemId]],
-			]}).then(count =>	count ? count.toString() : "0")),
-		}).height(args.defaultButtonSize),
+		new ZPile().content([
+			new Reactive({
+				content: new Label(),
+				value: new ValueFromPromise(args.request({method: 'model.ir.attachment.search_count', params: [
+					[["resource", "=", args.modelId+","+args.itemId]],
+				]}).then(count =>	count ? count.toString() : "0")),
+			}),
+			new IconButton({backgroudColor: 'transparent'}).icon(icons.attachment).title("Ajouter une photo").onAction(this._addAttachement.bind(this)),
+		]).height(args.defaultButtonSize),
 	]
 	tools.forEach((btn, index) => args.toolbar.add('tool' + index, btn))
 	// remove buttons on destroy
