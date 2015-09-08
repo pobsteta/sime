@@ -24,7 +24,7 @@ module.exports = compose(_ContentDelegate, function(args) {
   this._updateIcon(args.options.panelOpen)
 }, {
   _updateIcon: function(open) {
-    this._toggleBtn.icon(open ? icons.bottom : icons.first)
+    this._toggleBtn.icon(open ? icons.listRemove : icons.listAdd)
   },
   focusArea: function(areaId) {
     this._panelContainer.slidePanel(areaId === 'panel');
