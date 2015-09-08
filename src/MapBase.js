@@ -11,7 +11,7 @@ export default compose(_ContentDelegate, _Destroyable, function(args) {
 	this._initialized = false;
 
 	var baseLayer = new ol.layer.Tile(),
-		mbtilesFileName = 'tryton.mbtiles';
+		mbtilesFileName = 'sime.mbtiles';
 	// load offline base layer if conditions are met
 	if (window.cordova && window.cordova.file.externalRootDirectory) {
 		// we are in a cordova-supported platform and external storage is mounted
