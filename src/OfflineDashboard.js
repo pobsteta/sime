@@ -112,7 +112,14 @@ export default compose(_ContentDelegate, function(args) {
     new HFlex([
       new Label().value("Dernier téléchargement").color('gray'),
       new Reactive({
-        value: args.offlineDataStatus,
+        value: new MappedValue(args.offlineDataStatus, (status) => {
+          var d = new Date(status)
+          if (isNaN(d.getTime())) {
+            return status // ce n'est pas une date
+          } else {
+            return d.toLocaleString()
+          }
+        }),
         content: new Label(),
       }),
       [new Space().width(args.defaultButtonSize), 'fixed'],
@@ -190,7 +197,7 @@ export default compose(_ContentDelegate, function(args) {
       // download (si l'upload a été successful)
       .then(() => {
         syncProgress.value("Téléchargement des données en cours...")
-        args.offlineDataStatus.value("Aucune données")
+        args.offlineDataStatus.value("Aucunes données")
         var db = args.localDb
         return clearDb(db).then(() => {
           return download(args.request, args.wfsRequest, db,
