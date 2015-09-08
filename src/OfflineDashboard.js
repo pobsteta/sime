@@ -51,7 +51,7 @@ export default compose(_ContentDelegate, function(args) {
 
     new HFlex([
       new Label().value("Version de l'application").color('gray'),
-      new Label().value('0.4'),
+      new Label().value(args.appVersion),
     ]).height(args.defaultButtonSize),
 
     new Label().value("Données hors ligne").font({style: 'italic'}).height(50),

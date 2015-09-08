@@ -13,6 +13,7 @@ import Value from 'ksf/observable/Value'
 import ConnectionManager from './ConnectionManager'
 
 const defaultButtonSize = 50
+const appVersion = '0.5'
 
 var Modal = compose(_ContentDelegate, function (content) {
   this._content = new Background(
@@ -60,6 +61,7 @@ export default compose(_ContentDelegate, function() {
 
 	this._content = new ZPile().content([
     new ConnectionManager({
+      appVersion: appVersion,
       popupContainer: popupContainer,
       confirm: function (question) {
         var cmp = new ConfirmDialog(question)
