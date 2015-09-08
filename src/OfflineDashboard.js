@@ -44,18 +44,19 @@ export default compose(_ContentDelegate, function(args) {
       }
     })
   })
-  var downloadProgress = new Value('')
+  var syncProgress = new Value('')
 
   var dashboard = new VScroll(new VPile().content([
     new Label().value("Paramètres de l'application").font({size: '18px', weight: 'bold'}).hAlign('center').height(args.defaultButtonSize),
+
     new HFlex([
-      [new Label().value("Version de l'application").width(150).color('gray'), 'fixed'],
+      new Label().value("Version de l'application").color('gray'),
       new Label().value('0.4'),
     ]).height(args.defaultButtonSize),
 
-    new Label().value("Périmètre des données hors ligne").font({style: 'italic'}).height(50),
+    new Label().value("Données hors ligne").font({style: 'italic'}).height(50),
     new HFlex([
-      [new Label().value("Elément de menu").width(150).color('gray'), 'fixed'],
+      new Label().value("Elément de menu").color('gray'),
       new Reactive({
         value: new TransformedValue(args.offlineMenuItemId, function(id) {
           if (id === null) {
@@ -77,7 +78,7 @@ export default compose(_ContentDelegate, function(args) {
         }),
         content: new Label().value(),
       }),
-      [new IconButton().icon(icons.editFind).disabled(!args.online).width(args.defaultButtonSize).onAction(() => {
+      [new IconButton().icon(icons.editFind).disabled(!args.online).onAction(() => {
         this._content.content(new MenuBase(create(args, {
           onItemSelect: (menuItemId) => {
             args.offlineMenuItemId.value(menuItemId)
@@ -85,15 +86,15 @@ export default compose(_ContentDelegate, function(args) {
             this._content.content(dashboard)
           },
         })))
-      }), 'fixed'],
+      }).width(args.defaultButtonSize), 'fixed'],
     ]).height(args.defaultButtonSize),
     new HFlex([
-      [new Label().value("Zone géographique").color('gray').width(150), 'fixed'],
+      new Label().value("Zone géographique").color('gray'),
       new Reactive({
         value: new MappedValue(args.mapExtent, extent => extent ? extent.toString() : "Aucune"),
         content: new Label(),
       }),
-      [new IconButton().icon(icons.editFind).disabled(!args.online).width(args.defaultButtonSize).onAction(() => {
+      [new IconButton().icon(icons.editFind).disabled(!args.online).onAction(() => {
         var map = new MapBase({
           extent: args.mapExtent.value(),
         })
@@ -105,64 +106,26 @@ export default compose(_ContentDelegate, function(args) {
             this._content.content(dashboard)
           }).height(args.defaultButtonSize)],
         ]));
-      }), 'fixed'],
+      }).width(args.defaultButtonSize), 'fixed'],
     ]).height(args.defaultButtonSize),
 
-    new Space().height(20),
-
-    new Label().value("Dernier téléchargement").font({style: 'italic'}).height(50),
     new HFlex([
+      new Label().value("Dernier téléchargement").color('gray'),
       new Reactive({
         value: args.offlineDataStatus,
         content: new Label(),
       }),
-      [new IconButton().icon(icons.save).disabled(!args.online).onAction(()=> {
-        downloadProgress.value("Téléchargement des données en cours...")
-        args.offlineDataStatus.value("Aucune données")
-        var db = args.localDb
-        clearDb(db).then(() => {
-          download(args.request, args.wfsRequest, db,
-            args.offlineMenuItemId.value(),  // menuID
-            args.mapExtent.value()  // extent in EPSG:3857 (Mercator)
-          ).then(
-            () => {
-              args.offlineDataStatus.value(new Date().toISOString())
-              downloadProgress.value("Téléchargement terminé")
-            },
-            (err) => {
-              args.offlineDataStatus.value("["+new Date().toISOString()+"] Erreur : "+JSON.stringify(err))
-              downloadProgress.value("Erreur lors du téléchargement")
-            }
-          )
-        })
-      }).width(args.defaultButtonSize), 'fixed'],
+      [new Space().width(args.defaultButtonSize), 'fixed'],
     ]).height(args.defaultButtonSize),
 
-    [new Reactive({
-      value: downloadProgress,
-      content: new Label(),
-    }).height(args.defaultButtonSize), 'fixed'],
-
-    new Space().height(20),
-
-    new Label().value("Modifications en attente").font({style: 'italic'}).height(50),
     new HFlex([
+      new Label().value("Modifications en attente").color('gray'),
       new Reactive({
         value: new MappedValue(requestsStore, function () {
-          return requestsStore.keys().length + ' requêtes'
+          return requestsStore.keys().length + ' requête(s)'
         }),
         content: new Label(),
       }),
-      [new IconButton().icon(icons.mailSendReceive).disabled(!args.online).onAction(function () {
-        args.message.value("Envoi en cours...")
-        upload(requestsStore, args.request, args.wfsRequest).then(
-          ()=>args.message.value("Envoi terminé"),
-          ()=>args.message.value("Echec lors de l'envoi")
-        )
-      }).width(args.defaultButtonSize), 'fixed'],
-    ]).height(args.defaultButtonSize),
-    new HFlex([
-      new Space(),
       [new IconButton().icon(icons.faceGlasses).onAction(() => {
         this._content.content(new VFlex([
           [new IconButton().icon(icons.previous).onAction(
@@ -206,17 +169,57 @@ export default compose(_ContentDelegate, function(args) {
               pile.remove(key)
             },
           })),
-          [new IconButton().icon(icons.mailSendReceive).disabled(!args.online).onAction(function () {
-            args.message.value("Envoi en cours...")
-            upload(requestsStore, args.request, args.wfsRequest).then(
-              ()=>args.message.value("Envoi terminé"),
-              ()=>args.message.value("Echec lors de l'envoi")
-            )
-          }).height(args.defaultButtonSize), 'fixed'],
+          // [new IconButton().icon(icons.mailSendReceive).disabled(!args.online).onAction(function () {
+          //   args.message.value("Envoi en cours...")
+          //   upload(requestsStore, args.request, args.wfsRequest).then(
+          //     ()=>args.message.value("Envoi terminé"),
+          //     ()=>args.message.value("Echec lors de l'envoi")
+          //   )
+          // }).height(args.defaultButtonSize), 'fixed'],
 
         ]))
       }).width(args.defaultButtonSize), 'fixed'],
     ]).height(args.defaultButtonSize),
+
+    new Space().height(20),
+
+    new IconButton().icon(icons.mailSendReceive).title("Synchroniser les données").disabled(!args.online).onAction(function () {
+      // upload
+      syncProgress.value("Upload en cours...")
+      upload(requestsStore, args.request, args.wfsRequest)
+      // download (si l'upload a été successful)
+      .then(() => {
+        syncProgress.value("Téléchargement des données en cours...")
+        args.offlineDataStatus.value("Aucune données")
+        var db = args.localDb
+        return clearDb(db).then(() => {
+          return download(args.request, args.wfsRequest, db,
+            args.offlineMenuItemId.value(),  // menuID
+            args.mapExtent.value()  // extent in EPSG:3857 (Mercator)
+          ).then(
+            () => {
+              args.offlineDataStatus.value(new Date().toISOString())
+            },
+            (err) => {
+              args.offlineDataStatus.value("["+new Date().toISOString()+"] Erreur : "+JSON.stringify(err))
+              throw(err)
+            }
+          )
+        })
+      })
+      .then(
+        ()=>syncProgress.value("Synchronisation terminée"),
+        (err)=> {
+          syncProgress.value("Echec de la synchronisation : "+JSON.stringify(err))
+          console.log('Erreur lors de la synchro', err)
+        }
+      )
+    }).height(args.defaultButtonSize),
+    new Reactive({
+      value: syncProgress,
+      content: new Label().hAlign('center'),
+    }).height(args.defaultButtonSize),
+
   ]))
   this._content = new Switch().content(dashboard)
 })
