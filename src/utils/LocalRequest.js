@@ -14,10 +14,10 @@ function searchItems(db, prefix, params, readValue) {
   var queryProp = query[0]
   var queryOperand = query[2]
   return new Promise((resolve, reject) => {
-    var start = Date.now()
+    var start = performance.now()
     var result = []
     var index = 0
-    db.createValueStream({
+    var stream = db.createValueStream({
       gte: prefix,
       lte: prefix+'\uffff',
       //limit: offset+limit,
@@ -26,13 +26,18 @@ function searchItems(db, prefix, params, readValue) {
           if (index >= offset && result.length < limit) {
             if (get(value, queryProp) === queryOperand) {
               result.push(readValue ? value : get(value, 'id'))
+              if (result.length === limit) {
+                console.log('search duration', prefix, performance.now()-start, params)
+                resolve(result)
+                stream.destroy()
+              }
             }
           }
           index++
       })
       .on('error', reject)
       .on('end', function () {
-        console.log('search time', prefix, Date.now()-start, params)
+        console.log('search duration', prefix, performance.now()-start, params)
         resolve(result)
       })
   })
