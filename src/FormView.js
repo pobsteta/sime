@@ -47,7 +47,7 @@ var ItemValueEditor = compose(_ContentDelegate, function (args) {
 				arch: arch,
 			}))
 			container.add(fieldId, new Margin(new HFlex([
-				[new Label().value(field.string).width(150), 'fixed'],
+				[new Label().vAlign('top').value(field.string).width(150), 'fixed'],
 				fieldWidget,
 			]), 5).height((fieldWidget.height() || 30)+10));
 		});
