@@ -23,7 +23,7 @@ var createPagingControls = require('./createPagingControls')
 
 import {newDoc as iconNew} from './icons/index'
 
-var pageSize = 100
+var pageSize = 10
 
 /**
 @params args {
