@@ -32,6 +32,13 @@ Vue qui affiche le menu et une zone principale
 module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	var self = this
 	var session = args.session
+	var commonArgs = create(args, {
+		changes: {
+			geom: null,
+			attrs: {},
+		},
+	});
+	var saver = commonArgs.saver = new Saver(commonArgs)
 
 	if (args.online) {
 		this._own(bindValue(session, function(sessionToken) {
@@ -39,8 +46,12 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 				var passwordInput;
 				var authenticationMessage = new Label();
 				args.modal(new VPile().width(200).content([
-					passwordInput = new LabelInput().placeholder("password").height(30),
-					new Button().value("OK").height(30).onAction(function() {
+					new IconButton({backgroudColor: 'transparent'}).icon(icons.online).title("Passer hors ligne").onAction(saver.wrapCb(function () {
+						args.goOffline()
+						args.modal(null)
+					})).height(args.defaultButtonSize),
+					passwordInput = new LabelInput().placeholder("password").height(args.defaultButtonSize),
+					new Button().value("OK").height(args.defaultButtonSize).onAction(function() {
 						authenticationMessage.value('authenticating...');
 						var pwd = passwordInput.value();
 						trytonLogin(args.connectionValue, session, pwd).then(function() {
@@ -58,13 +69,6 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 
 	}
 
-	var commonArgs = create(args, {
-		changes: {
-			geom: null,
-			attrs: {},
-		},
-	});
-	var saver = commonArgs.saver = new Saver(commonArgs)
 	var mainArea = new Switch();
 	var message = new Label();
 	var panelContainer = this._content = new SidePanelContainer({
