@@ -197,18 +197,22 @@ export default compose(_ContentDelegate, function(args) {
           args.offlineDataStatus.value("Aucunes données")
           var db = args.localDb
           return clearDb(db).then(() => {
-            return download(args.request, args.wfsRequest, db,
-              args.offlineMenuItemId.value(),  // menuID
-              args.mapExtent.value()  // extent in EPSG:3857 (Mercator)
-            ).then(
-              () => {
-                args.offlineDataStatus.value(new Date().toISOString())
-              },
-              (err) => {
-                args.offlineDataStatus.value("["+new Date().toISOString()+"] Erreur : "+JSON.stringify(err))
-                throw(err)
-              }
-            )
+            var offlineMenuItemIdValue = args.offlineMenuItemId.value()
+            var mapExtendValue = args.mapExtent.value()
+            if (offlineMenuItemIdValue && mapExtendValue) {
+              return download(args.request, args.wfsRequest, db,
+                offlineMenuItemIdValue,  // menuID
+                mapExtendValue  // extent in EPSG:3857 (Mercator)
+              ).then(
+                () => {
+                  args.offlineDataStatus.value(new Date().toISOString())
+                },
+                (err) => {
+                  args.offlineDataStatus.value("["+new Date().toISOString()+"] Erreur : "+JSON.stringify(err))
+                  throw(err)
+                }
+              )
+            }
           })
         })
         .then(
