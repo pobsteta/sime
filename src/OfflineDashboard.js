@@ -54,7 +54,7 @@ export default compose(_ContentDelegate, function(args) {
       new Label().value(args.appVersion),
     ]).height(args.defaultButtonSize),
 
-    new Label().value("Données hors ligne").font({style: 'italic'}).height(50),
+    new Label().value("Périmètre des données hors ligne").font({style: 'italic'}).height(50),
     new HFlex([
       new Label().value("Elément de menu").color('gray'),
       new Reactive({
@@ -109,21 +109,7 @@ export default compose(_ContentDelegate, function(args) {
       }).width(args.defaultButtonSize), 'fixed'],
     ]).height(args.defaultButtonSize),
 
-    new HFlex([
-      new Label().value("Dernier téléchargement").color('gray'),
-      new Reactive({
-        value: new MappedValue(args.offlineDataStatus, (status) => {
-          var d = new Date(status)
-          if (isNaN(d.getTime())) {
-            return status // ce n'est pas une date
-          } else {
-            return d.toLocaleString()
-          }
-        }),
-        content: new Label(),
-      }),
-      [new Space().width(args.defaultButtonSize), 'fixed'],
-    ]).height(args.defaultButtonSize),
+    new Label().value("Etat des données hors ligne").font({style: 'italic'}).height(50),
 
     new HFlex([
       new Label().value("Modifications en attente").color('gray'),
@@ -188,40 +174,55 @@ export default compose(_ContentDelegate, function(args) {
       }).width(args.defaultButtonSize), 'fixed'],
     ]).height(args.defaultButtonSize),
 
+    new HFlex([
+      new Label().value("Dernière synchronisation").color('gray'),
+      new Reactive({
+        value: new MappedValue(args.offlineDataStatus, (status) => {
+          var d = new Date(status)
+          if (isNaN(d.getTime())) {
+            return status // ce n'est pas une date
+          } else {
+            return d.toLocaleString()
+          }
+        }),
+        content: new Label(),
+      }),
+      [new IconButton().icon(icons.mailSendReceive).title("Synchroniser les données").disabled(!args.online).onAction(function () {
+        // upload
+        syncProgress.value("Upload en cours...")
+        upload(requestsStore, args.request, args.wfsRequest)
+        // download (si l'upload a été successful)
+        .then(() => {
+          syncProgress.value("Téléchargement des données en cours...")
+          args.offlineDataStatus.value("Aucunes données")
+          var db = args.localDb
+          return clearDb(db).then(() => {
+            return download(args.request, args.wfsRequest, db,
+              args.offlineMenuItemId.value(),  // menuID
+              args.mapExtent.value()  // extent in EPSG:3857 (Mercator)
+            ).then(
+              () => {
+                args.offlineDataStatus.value(new Date().toISOString())
+              },
+              (err) => {
+                args.offlineDataStatus.value("["+new Date().toISOString()+"] Erreur : "+JSON.stringify(err))
+                throw(err)
+              }
+            )
+          })
+        })
+        .then(
+          ()=>syncProgress.value("Synchronisation terminée"),
+          (err)=> {
+            syncProgress.value("Echec de la synchronisation : "+JSON.stringify(err))
+            console.log('Erreur lors de la synchro', err)
+          }
+        )
+      }).width(args.defaultButtonSize), 'fixed'],
+    ]).height(args.defaultButtonSize),
+
     new Space().height(20),
 
-    new IconButton().icon(icons.mailSendReceive).title("Synchroniser les données").disabled(!args.online).onAction(function () {
-      // upload
-      syncProgress.value("Upload en cours...")
-      upload(requestsStore, args.request, args.wfsRequest)
-      // download (si l'upload a été successful)
-      .then(() => {
-        syncProgress.value("Téléchargement des données en cours...")
-        args.offlineDataStatus.value("Aucunes données")
-        var db = args.localDb
-        return clearDb(db).then(() => {
-          return download(args.request, args.wfsRequest, db,
-            args.offlineMenuItemId.value(),  // menuID
-            args.mapExtent.value()  // extent in EPSG:3857 (Mercator)
-          ).then(
-            () => {
-              args.offlineDataStatus.value(new Date().toISOString())
-            },
-            (err) => {
-              args.offlineDataStatus.value("["+new Date().toISOString()+"] Erreur : "+JSON.stringify(err))
-              throw(err)
-            }
-          )
-        })
-      })
-      .then(
-        ()=>syncProgress.value("Synchronisation terminée"),
-        (err)=> {
-          syncProgress.value("Echec de la synchronisation : "+JSON.stringify(err))
-          console.log('Erreur lors de la synchro', err)
-        }
-      )
-    }).height(args.defaultButtonSize),
     new Reactive({
       value: syncProgress,
       content: new Label().hAlign('center'),
