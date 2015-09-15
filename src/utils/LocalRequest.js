@@ -1,4 +1,3 @@
-import assign from 'lodash/object/assign'
 import get from 'lodash/object/get'
 import find from 'lodash/collection/find'
 import pick from 'lodash/object/pick'
@@ -20,7 +19,6 @@ function searchItems(db, prefix, params, readValue) {
     var stream = db.createValueStream({
       gte: prefix,
       lte: prefix+'\uffff',
-      //limit: offset+limit,
     })
       .on('data', function(value) {
           if (index >= offset && result.length < limit) {
@@ -47,11 +45,31 @@ function readItems(db, prefix, params) {
   return Promise.all(params[0].map(id => db.get(prefix+id)))
 }
 
+function applyPatch(obj, patch) {
+  Object.keys(patch).forEach(key => {
+    var propPatch = patch[key]
+    // c'est une suite d'opérations 'add' et 'remove'
+    if (Array.isArray(propPatch)) {
+      if (propPatch[0] === 'add') {
+        obj[key] = obj[key].concat(propPatch[1])
+      }
+      if (propPatch[0] === 'unlink') {
+        var i = obj[key].indexOf(propPatch[1][0])
+        obj[key].splice(i, 1)
+      }
+    } else {
+    // c'est une valeur simple
+      obj[key] = propPatch
+    }
+  })
+}
+
 function writeItems(db, prefix, params) {
   // pour l'instant ça n'écrit qu'un seul item
   var itemId = params[0][0]
+
   return db.get(prefix+itemId).then(itemValue =>
-    db.put(prefix+itemId, assign(itemValue, params[1]))
+    db.put(prefix+itemId, applyPatch(itemValue, params[1]))
   )
 }
 
@@ -63,7 +81,8 @@ function deleteItems(db, prefix, params) {
 
 function createItems(db, prefix, params) {
   // pour l'instant ça ne crée qu'un seul item
-  var itemValue = params[0][0]
+  var itemValue = {}
+  applyPatch(itemValue, params[0][0])
   var itemId = itemValue.id = Date.now()
   return db.put(prefix+itemId, itemValue)
     .then(() => [itemId])
