@@ -40,17 +40,17 @@ var ItemValueEditor = compose(_ContentDelegate, function (args) {
 	args.viewDef.then(function(viewDef) {
 		var arch = new DOMParser().parseFromString(viewDef.arch, 'application/xml')
 		var fieldIds = getFieldsFromView(arch);
-		fieldIds.forEach(function(fieldId) {
+		container.content(fieldIds.map(function(fieldId) {
 			var field = viewDef.fields[fieldId]
 			var fieldWidget = createFieldEditor(create(args, {
 				field: field,
 				arch: arch,
 			}))
-			container.add(fieldId, new Margin(new HFlex([
+			return new Margin(new HFlex([
 				[new Label().vAlign('top').value(field.string).width(150), 'fixed'],
 				fieldWidget,
-			]), 5).height((fieldWidget.height() || 30)+10));
-		});
+			]), 5).height((fieldWidget.height() || 30)+10)
+		}))
 	})
 
 })
