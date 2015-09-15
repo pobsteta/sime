@@ -194,6 +194,7 @@ var editFieldFactories = {
 		var subModelId = field.relation;
 		var subItemIds = item[field.name] ?item[field.name] : []
 
+		var container
 		var createSubItemView = (subItemId, subItemName) => {
 			var button = new Button()
 			subItemName.then((res) => button.value(res[0]['rec_name']))
@@ -204,35 +205,34 @@ var editFieldFactories = {
 						args.nextItem(subModelId, subItemId, viewsByType.form);
 					})
 				}),
-				[new Button().value('-').width(30).onAction(() => {
+				[new Button().value('-').width(30).onAction(function () {
 					updateMany2manyChanges(args.changes.attrs, field.name, 'unlink', subItemId)
 					container.remove(subItemId)
 				})],
 			]).height(30)
 		}
 
-		var container = new VPile().content(subItemIds.map((subItemId =>
+		container = new VPile().content(subItemIds.map((subItemId =>
 			[createSubItemView(subItemId, args.request({method: 'model.'+subModelId+'.read', params: [
 				[subItemId],
 				['rec_name'],
 			]})), subItemId]))
 		)
-		return new VPile().content([
-			new VScroll(container).height(90),
-			new Button().value('+').onAction(() => {
-				args.popupContainer.content(new ModalChoiceList(create(args, {
-					modelId: subModelId,
-					activeItem: null,
-					onInput: function (selectedItem) {
-						updateMany2manyChanges(args.changes.attrs, field.name, 'add', selectedItem.id)
-						container.add(selectedItem.id, createSubItemView(selectedItem.id, Promise.resolve([{'rec_name': selectedItem.rec_name}])))
-					},
-					onClose: function () {
-						args.popupContainer.content(null)
-					},
-				})))
-			}).height(30),
-		])
+		container.add('addButton', new Button().value('+').onAction(() => {
+			args.popupContainer.content(new ModalChoiceList(create(args, {
+				modelId: subModelId,
+				activeItem: null,
+				onInput: function (selectedItem) {
+					updateMany2manyChanges(args.changes.attrs, field.name, 'add', selectedItem.id)
+					container.add(selectedItem.id, createSubItemView(selectedItem.id, Promise.resolve([{'rec_name': selectedItem.rec_name}])), 'addButton')
+				},
+				onClose: function () {
+					args.popupContainer.content(null)
+				},
+			})))
+		}).height(30))
+
+		return new VScroll(container).height(120)
 	},
 	one2many: function(args) {
 		var field = args.field;
