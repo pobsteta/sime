@@ -62,6 +62,7 @@ function applyPatch(obj, patch) {
       obj[key] = propPatch
     }
   })
+  return obj
 }
 
 function writeItems(db, prefix, params) {
@@ -81,8 +82,7 @@ function deleteItems(db, prefix, params) {
 
 function createItems(db, prefix, params) {
   // pour l'instant ça ne crée qu'un seul item
-  var itemValue = {}
-  applyPatch(itemValue, params[0][0])
+  var itemValue = applyPatch({}, params[0][0])
   var itemId = itemValue.id = Date.now()
   return db.put(prefix+itemId, itemValue)
     .then(() => [itemId])
