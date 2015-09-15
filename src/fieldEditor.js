@@ -164,7 +164,7 @@ var editFieldFactories = {
 		var itemRecName = parentItem[field.name+'.rec_name']
 		var selectButton
 		// en offline, le rec_name n'est pas forcément dispo sur le parentItem
-		if (!args.online) {
+		if (!args.online && itemId) {
 			args.request({method: "model."+modelId+".read", params: [
 				[itemId],
 				['rec_name'],
