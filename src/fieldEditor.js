@@ -158,13 +158,26 @@ var editFieldFactories = {
 	},
 	many2one: function(args) {
 		var field = args.field;
-		var item = args.itemValue;
+		var parentItem = args.itemValue;
 		var modelId = field.relation;
-		var itemId = item[field.name];
+		var itemId = parentItem[field.name];
+		var itemRecName = parentItem[field.name+'.rec_name']
 		var selectButton
+		// en offline, le rec_name n'est pas forcément dispo sur le parentItem
+		if (!args.online) {
+			args.request({method: "model."+modelId+".read", params: [
+				[itemId],
+				['rec_name'],
+			]}).then(item =>
+				// si l'élément est en cache, on affiche son rec_name
+				selectButton.value(item[0]['rec_name']),
+				// sinon on laisse la valeur d'origine
+				() => {}
+			)
+		}
 		return new HFlex([
 			selectButton = new Button()
-				.value(item[field.name+'.rec_name'])
+				.value(itemRecName)
 				.disabled(field.readonly)
 				.onAction(function() {
 					var currentValue = args.changes.attrs[field.name] || itemId
