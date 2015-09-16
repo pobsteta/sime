@@ -107,53 +107,15 @@ var editFieldFactories = {
 				args.changes.attrs[args.field.name] = newValue;
 			})
 	},
-	biginteger: function(args) {
-		return new NumberInput()
-			.value(args.itemValue[args.field.name])
-			.prop('disabled', args.field.readonly)
-			.onInput(function (newValue) {
-				args.changes.attrs[args.field.name] = newValue;
-			})
-	},
 	char: function(args) {
-		return new LabelInput()
+		return new LabelInput({asYouType: true})
 			.value(args.itemValue[args.field.name])
 			.disabled(args.field.readonly)
 			.onInput(function(newValue) {
 				args.changes.attrs[args.field.name] = newValue;
 			});
-	},
-	text: function(args) {
-		return new LabelInput()
-			.value(args.itemValue[args.field.name])
-			.disabled(args.field.readonly)
-			.onInput(function(newValue) {
-				args.changes.attrs[args.field.name] = newValue;
-			});
-	},
-	float: function(args) {
-		return new NumberInput()
-			.value(args.itemValue[args.field.name])
-			.prop('disabled', args.field.readonly)
-			.onInput(function (newValue) {
-				args.changes.attrs[args.field.name] = newValue;
-			})
-	},
-	numeric: function(args) {
-		return new NumberInput()
-			.value(args.itemValue[args.field.name])
-			.prop('disabled', args.field.readonly)
-			.onInput(function (newValue) {
-				args.changes.attrs[args.field.name] = newValue;
-			})
-	},
-	date: function(args) {
-		return new Label().value(args.itemValue[args.field.name]);
 	},
 	datetime: function(args) {
-		return new Label().value(args.itemValue[args.field.name]);
-	},
-	time: function(args) {
 		return new Label().value(args.itemValue[args.field.name]);
 	},
 	many2one: function(args) {
@@ -264,17 +226,15 @@ var editFieldFactories = {
 			args.nextCollection(modelId, query, viewsByType.tree, viewsByType.form);
 		});
 	},
-	binary: function (args) {
-		var field = args.field
-		var value = args.itemValue[field.name]
-		if (!value) {
-			return new Label().value('-')
-		}
-		var img = new El('img').prop('src', 'data:image/png;base64,'+value.base64).height(200)
-		return new VScroll(img).height(200)
-	},
 
 };
+editFieldFactories.bigInteger = editFieldFactories.integer
+editFieldFactories.float = editFieldFactories.integer
+editFieldFactories.numeric = editFieldFactories.integer
+editFieldFactories.text = editFieldFactories.char
+editFieldFactories.date = editFieldFactories.datetime
+editFieldFactories.time = editFieldFactories.datetime
+
 module.exports = function createFieldEditor (args) {
 	var field = args.field;
 	if (field.type in editFieldFactories) {

@@ -261,12 +261,16 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	}));
 	this._itemSelectTool.on('select', function(e) {
 		var selection = e.target.getFeatures();
+		var itemToActivate
 		if (selection.getLength()) {
-			args.activeItem.value(parseInt(selection.item(0).get('id')));
-			args.onSelect()
+			itemToActivate = parseInt(selection.item(0).get('id'))
 		} else {
-			args.activeItem.value(null);
+			itemToActivate = null
 		}
+		args.saver.ensureChangesAreSaved().then(() => {
+			args.activeItem.value(itemToActivate)
+			itemToActivate && args.onSelect()
+		})
 	}.bind(this));
 
 	this.olMap.on('moveend', () => {
@@ -277,7 +281,11 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	this._own(args.activeItem.onChange(this._setActiveId.bind(this)));
 	this._wfsSource.on('addfeature', this._refreshActiveHighlighting.bind(this));
 
-	this._own(on(args.saver, 'save', this._saveGeom.bind(this)))
+	this._own(on(args.saver, 'save', () => {
+		if (args.changes.modelId === args.modelId && args.changes.geom) {
+			return this._saveGeom()
+		}
+	}))
 	this._own(on(args.saver, 'cancel', this._disableEditMode.bind(this)))
 }, {
 	_setActiveId: function(id) {
@@ -412,25 +420,23 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	_getActiveGeom: function() {
 		var activeFeature = this._getActiveFeature();
 		var self = this;
-		return when.promise(function(resolve) {
-			if (activeFeature) {
-				// if feature is loaded on map, use its geometry directly
-				resolve(activeFeature.getGeometry());
-			} else {
-				// otherwise, make a request to get the geom
-				self._args.request({ method: "model." + self._args.modelId + ".read", params: [
-					[self._args.activeItem.value()],
-					['geom'],
-				]}).then(function(res) {
-					var geojson = res[0].geom;
-					var geom = null;
-					if (geojson) {
-						geom = new ol.format.GeoJSON().readGeometry(geojson).transform('EPSG:2154', 'EPSG:3857');
-					}
-					resolve(geom);
-				});
-			}
-		});
+		if (activeFeature) {
+			// if feature is loaded on map, use its geometry directly
+			return when(activeFeature.getGeometry())
+		} else {
+			// otherwise, make a request to get the geom
+			return self._args.request({ method: "model." + self._args.modelId + ".read", params: [
+				[self._args.activeItem.value()],
+				['geom'],
+			]}).then(function(res) {
+				var geojson = res[0].geom;
+				var geom = null;
+				if (geojson) {
+					geom = new ol.format.GeoJSON().readGeometry(geojson).transform('EPSG:2154', 'EPSG:3857');
+				}
+				return geom
+			});
+		}
 	},
 	_toggleEdit: function() {
 		if (this._editMode) {

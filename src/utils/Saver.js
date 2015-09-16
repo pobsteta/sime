@@ -44,6 +44,12 @@ module.exports = compose(_Evented, function (args) {
   emit: _Evented._emit,
   // helper
   wrapCb: function (cb) {
-    return () => this.ensureChangesAreSaved().then(cb)
+    var self = this
+    return function () {
+      var args = arguments
+      self.ensureChangesAreSaved().then(function () {
+        cb.apply(null, args)
+      })
+    }
   },
 })

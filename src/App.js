@@ -30,6 +30,7 @@ var ConfirmDialog = compose(_ContentDelegate, function (question, okOnly) {
       new VScroll(new El()
         .prop('textContent', question)
         .styleProp('backgroundColor', 'white')
+        .height(100)
       , {scrollBarSize: 0}).height(100),
       new HFlex([
         new Button().value("OK").onAction(function() {
