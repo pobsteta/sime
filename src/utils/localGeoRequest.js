@@ -3,7 +3,6 @@ import assign from 'lodash/object/assign'
 
 var geoJson = new ol.format.GeoJSON()
 
-var searchLimit = 1000;
 
 export default function(db) {
   return function(args) {
@@ -14,7 +13,6 @@ export default function(db) {
         db.createValueStream({
             gte: keyPrefix,
             lte: keyPrefix+'\uffff',
-            limit: searchLimit,
           })
           .on('data', function(value) {
             if (!value.geom) return
