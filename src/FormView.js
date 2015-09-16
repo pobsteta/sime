@@ -1,6 +1,5 @@
 var compose = require('ksf/utils/compose');
 var on = require('ksf/utils/on')
-var ValueFromPromise = require('ksf/observable/ValueFromPromise')
 var create = require('lodash/object/create');
 
 var _ContentDelegate = require('absolute/_ContentDelegate');
@@ -72,24 +71,30 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 	this._content = new VScroll(formContainer)
 
 	// add buttons in toolbar
+	var attachmentCountLabel = new Label().hAlign('right').vAlign('bottom')
+	var attachmentButton = new IconButton({backgroudColor: 'transparent'}).icon(icons.attachment).title("Ajouter une photo").onAction(this._addAttachement.bind(this))
 	var tools = [
 		new IconButton().icon(icons.save).title("Enregistrer").height(args.defaultButtonSize).onAction(this._save.bind(this)),
 		new IconButton().icon(icons.cancel).title("Annuler les modifications").height(args.defaultButtonSize).onAction(this._cancel.bind(this)),
 		new IconButton().icon(icons.destroy).title("Supprimer").height(args.defaultButtonSize).onAction(this._destroyItem.bind(this)),
 		new ZPile().content([
-			new Reactive({
-				content: new Label(),
-				value: new ValueFromPromise(args.request({method: 'model.ir.attachment.search_count', params: [
-					[["resource", "=", args.modelId+","+args.itemId]],
-				]}).then(count =>	count ? count.toString() : "0")),
-			}),
-			new IconButton({backgroudColor: 'transparent'}).icon(icons.attachment).title("Ajouter une photo").onAction(this._addAttachement.bind(this)),
+			attachmentCountLabel,
+			attachmentButton,
 		]).height(args.defaultButtonSize),
 	]
 	tools.forEach((btn, index) => args.toolbar.add('tool' + index, btn))
 	// remove buttons on destroy
 	this._own(function() {
 		tools.forEach((btn, index) => args.toolbar.remove('tool' + index))
+	})
+	// update attachement count
+	args.request({method: 'model.ir.attachment.search_count', params: [
+		[["resource", "=", args.modelId+","+args.itemId]],
+	]}).then(count => {
+		attachmentCountLabel.value(count ? '('+count.toString()+')' : "(0)")
+		if (count) {
+			attachmentButton.icon(icons.attachement)
+		}
 	})
 
 	this._own(on(args.saver, 'save', function () {
