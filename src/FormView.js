@@ -20,7 +20,7 @@ var Margin = require('absolute/Margin');
 var createFieldEditor = require('./fieldEditor')
 
 var getFieldIdsToRequest = require('./utils/getFieldIdsToRequest');
-var getFieldsFromView = require('./utils/getFieldsFromView')
+var getVisibleFieldsFromView = require('./utils/getVisibleFieldsFromView')
 
 import * as icons from './icons/index'
 
@@ -38,7 +38,7 @@ var ItemValueEditor = compose(_ContentDelegate, function (args) {
 
 	args.viewDef.then(function(viewDef) {
 		var arch = new DOMParser().parseFromString(viewDef.arch, 'application/xml')
-		var fieldIds = getFieldsFromView(arch);
+		var fieldIds = getVisibleFieldsFromView(arch);
 		container.content(fieldIds.map(function(fieldId) {
 			var field = viewDef.fields[fieldId]
 			var fieldWidget = createFieldEditor(create(args, {

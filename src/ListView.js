@@ -18,7 +18,7 @@ var Clickable = require('absolute/Clickable');
 
 var getFieldIdsToRequest = require('./utils/getFieldIdsToRequest');
 var createFieldDisplayer = require('./fieldDisplayer')
-var getFieldsFromView = require('./utils/getFieldsFromView')
+var getVisibleFieldsFromView = require('./utils/getVisibleFieldsFromView')
 var createPagingControls = require('./createPagingControls')
 
 import {newDoc as iconNew} from './icons/index'
@@ -87,7 +87,7 @@ function displayList (args) {
 
 	return args.listViewDef.then(function(viewDef) {
 		var arch = new DOMParser().parseFromString(viewDef.arch, 'application/xml')
-		var fieldIds = getFieldsFromView(arch)
+		var fieldIds = getVisibleFieldsFromView(arch)
 		return request({method: "model."+modelId+".search_read", params: [
 			args.query,
 			args.fromItem.value(),
