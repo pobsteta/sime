@@ -328,7 +328,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 	_centerActive: function() {
 		this._getActiveGeom().then(function(geom) {
 			this._followPosition.value(false)
-			this.olMap.getView().fit(geom, this.olMap.getSize());
+			this.olMap.getView().fit(geom, this.olMap.getSize(), {maxZoom: 20});
 		}.bind(this));
 	},
 	_enableEditMode: function() {
@@ -338,7 +338,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 
 		this._getActiveGeom().then((geom) => {
 			if (geom) {
-				this.olMap.getView().fit(geom, this.olMap.getSize());
+				this.olMap.getView().fit(geom, this.olMap.getSize(), {maxZoom: 20});
 				var editingParts;
 				if (this._geomType === 'Polygon') {
 					editingParts = geom.getPolygons().map(function(geomPart) {
