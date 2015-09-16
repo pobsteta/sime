@@ -63,6 +63,40 @@ var baseStyle = [
 		}),
 	}),
 ];
+var editingStyle = new ol.style.Style({
+	image: new ol.style.Circle({
+		stroke: new ol.style.Stroke({
+			color: 'rgba(250, 170, 0, 1.0)',
+			width: 4,
+		}),
+		radius: 5,
+	}),
+	stroke: new ol.style.Stroke({
+		color: 'rgba(250, 170, 0, 1.0)',
+		width: 4,
+	}),
+	fill: new ol.style.Fill({
+		color: 'rgba(255, 255, 0, 0.3)',
+	}),
+})
+
+var editingSelectedPartStyle = new ol.style.Style({
+	image: new ol.style.Circle({
+		stroke: new ol.style.Stroke({
+			color: 'rgba(255, 0, 0, 1.0)',
+			width: 4,
+		}),
+		radius: 5,
+	}),
+	stroke: new ol.style.Stroke({
+		color: 'rgba(255, 0, 0, 1.0)',
+		width: 4,
+	}),
+	fill: new ol.style.Fill({
+		color: 'rgba(255, 0, 0, 0.3)',
+	}),
+})
+
 
 
 module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
@@ -180,37 +214,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 		}),
 		this._editingLayer = new ol.layer.Vector({
 			source: this._editingSource = new ol.source.Vector(),
-			style: [
-				new ol.style.Style({
-					image: new ol.style.Circle({
-						stroke: new ol.style.Stroke({
-							color: 'rgba(250, 170, 0, 1.0)',
-							width: 4,
-						}),
-						radius: 5,
-					}),
-					stroke: new ol.style.Stroke({
-						color: 'rgba(250, 170, 0, 1.0)',
-						width: 4,
-					}),
-					fill: new ol.style.Fill({
-						color: 'rgba(255, 255, 0, 0.3)',
-					}),
-				}),
-				// new ol.style.Style({
-				//   image: new ol.style.Circle({
-				//     radius: 2,
-				//     fill: new ol.style.Fill({
-				//       color: 'white'
-				//     })
-				//   }),
-				//   geometry: function(feature) {
-				//     // return the coordinates of the first ring of the polygon
-				//     var coordinates = feature.getGeometry().getCoordinates()[0];
-				//     return new ol.geom.MultiPoint(coordinates);
-				//   }
-				// })
-			],
+			style: editingStyle,
 		}),
 		new ol.layer.Vector({
 			source: this._locationSource = new ol.source.Vector(),
@@ -267,11 +271,13 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 		} else {
 			itemToActivate = null
 		}
-		args.saver.ensureChangesAreSaved().then(() => {
-			args.activeItem.value(itemToActivate)
-			itemToActivate && args.onSelect()
-		})
-	}.bind(this));
+		if (itemToActivate !== args.activeItem.value()) {
+			args.saver.ensureChangesAreSaved().then(() => {
+				args.activeItem.value(itemToActivate)
+				itemToActivate && args.onSelect()
+			})
+		}
+	});
 
 	this.olMap.on('moveend', () => {
 		// update mapExtent value
@@ -364,6 +370,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 
 			this.olMap.addInteraction(this._partSelectTool = new ol.interaction.Select({
 				layers: [this._editingLayer],
+				style: editingSelectedPartStyle,
 			}));
 			var selection = this._partSelectTool.getFeatures()
 			selection.on('change:length', () => {
