@@ -14,6 +14,7 @@ import ConnectionManager from './ConnectionManager'
 
 const defaultButtonSize = 50
 const appVersion = '0.5'
+const selectedItemBackgroundColor = 'orange'
 
 var Modal = compose(_ContentDelegate, function (content) {
   this._content = new Background(
@@ -75,6 +76,7 @@ export default compose(_ContentDelegate, function() {
         popupContainer.content(content ? new Modal(content) : null)
       },
       defaultButtonSize: defaultButtonSize,
+      selectedItemBackgroundColor: selectedItemBackgroundColor,
       position: position,
     }).depth(1000),
 		popupContainer,

@@ -60,7 +60,7 @@ var ChoiceList = compose(_ContentDelegate, function (args) {
 				var recName = item['rec_name']
 				return new Clickable(new Background(
 					new Label().value(recName)
-				).color(itemId === args.activeItem ? 'lightblue' : 'lightgrey')
+				).color(itemId === args.activeItem ? args.selectedItemBackgroundColor : 'lightgrey')
 					.border('1px solid'))
 					.onAction(args.onInput.bind(null, item))
 					.height(args.defaultButtonSize)

@@ -106,7 +106,7 @@ function displayList (args) {
 				// TODO : remplacer ces listeners inividuels par un listener global...
 				// TODO: détruite le handler de activeItem
 				bindValue(args.activeItem, function(activeItemId) {
-					itemView.color(activeItemId === itemId ? 'lightblue' : 'transparent');
+					itemView.color(activeItemId === itemId ? args.selectedItemBackgroundColor : 'transparent');
 				});
 				args.container.add(itemId, new Margin(new Clickable(itemView).onAction(function() {
 					args.activeItem.value(itemId);
