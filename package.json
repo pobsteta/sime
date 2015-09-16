@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "watchify boot.js -o dev/bundle.js -dv -t babelify",
     "release": "browserify boot.js -t babelify | uglifyjs -mc > release/bundle.js",
-    "release-html": "npm run release && html-inline release/index.html > release/sime.html",
-    "release-cordova": "npm run release && cp release/bundle.js cordova/project/www/app.js"
+    "html": "html-inline release/index.html > release/sime.html",
+    "cordova": "cp release/bundle.js cordova/project/www/app.js",
+    "release-html": "npm run release && npm run html",
+    "release-cordova": "npm run release && npm run cordova"
   },
   "author": "KaeS",
   "license": "ISC",
