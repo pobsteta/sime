@@ -93,7 +93,7 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 	]}).then(count => {
 		attachmentCountLabel.value(count ? '('+count.toString()+')' : "(0)")
 		if (count) {
-			attachmentButton.icon(icons.attachement)
+			attachmentButton.icon(icons.attachment) // TODO: utiliser l'icone avec une étoile
 		}
 	})
 

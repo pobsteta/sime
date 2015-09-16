@@ -17,7 +17,6 @@ var Background = require('absolute/Background');
 var Clickable = require('absolute/Clickable');
 var Button = require('absolute/Button');
 var VPile = require('absolute/VPile');
-var El = require('absolute/Element')
 var Space = require('absolute/Space')
 
 var createPagingControls = require('./createPagingControls')

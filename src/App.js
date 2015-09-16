@@ -14,7 +14,7 @@ import Value from 'ksf/observable/Value'
 import ConnectionManager from './ConnectionManager'
 
 const defaultButtonSize = 50
-const appVersion = '0.5'
+const appVersion = '0.6'
 const selectedItemBackgroundColor = 'orange'
 
 var Modal = compose(_ContentDelegate, function (content) {
