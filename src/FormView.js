@@ -116,6 +116,9 @@ var ItemEditor = compose(_ContentDelegate, _Destroyable, function (args) {
 		]}).then(function () {
 			args.changes.attrs = {}
 			args.saver.emit('attrsChanged')
+		}, err => {
+			args.alert("Erreur à l'enregistrement : "+JSON.stringify(err))
+			throw new Error(err)
 		})
 	},
 	_cancel: function () {
@@ -230,6 +233,7 @@ var ItemCreator = compose(_ContentDelegate, _Destroyable, function (args) {
 			args.activeItem.value(res[0])
 		}, function (err) {
 			args.message.value(JSON.stringify(err))
+			args.alert("Erreur à la création : "+JSON.stringify(err))
 			throw new Error(err)
 		})
 	},

@@ -4,9 +4,10 @@ import Align from 'absolute/Align'
 import Background from 'absolute/Background'
 import VPile from 'absolute/VPile'
 import HFlex from 'absolute/HFlex'
+import VScroll from 'absolute/VScroll'
 import ZPile from 'absolute/ZPile'
 import Switch from 'absolute/Switch'
-import Label from 'absolute/Label'
+import El from 'absolute/Element'
 import Button from 'absolute/Button'
 import Value from 'ksf/observable/Value'
 
@@ -22,19 +23,23 @@ var Modal = compose(_ContentDelegate, function (content) {
   ).color('lightgrey').opacity(0.8)
 })
 
-var ConfirmDialog = compose(_ContentDelegate, function (question) {
+var ConfirmDialog = compose(_ContentDelegate, function (question, okOnly) {
   var self = this
   this._response = new Promise(function(resolve){
     self._content = new Modal(new VPile().content([
-      new Label().value(question).height(30),
+      new VScroll(new El()
+        .prop('textContent', question)
+        .styleProp('backgroundColor', 'white')
+      , {scrollBarSize: 0}).height(100),
       new HFlex([
         new Button().value("OK").onAction(function() {
           resolve(true)
         }),
+      ].concat(okOnly ? [] : [
         new Button().value("Annuler").onAction(function() {
           resolve(false)
         }),
-      ]).height(60),
+      ])).height(defaultButtonSize),
     ]).width(200))
   })
 }, {
@@ -64,6 +69,14 @@ export default compose(_ContentDelegate, function() {
     new ConnectionManager({
       appVersion: appVersion,
       popupContainer: popupContainer,
+      alert: function (message) {
+        var cmp = new ConfirmDialog(message, true)
+        popupContainer.content(cmp)
+        return cmp.then(function (res) {
+          popupContainer.content(null)
+          return res
+        })
+      },
       confirm: function (question) {
         var cmp = new ConfirmDialog(question)
         popupContainer.content(cmp)
