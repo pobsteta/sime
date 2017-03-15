@@ -196,7 +196,7 @@ module.exports = compose(_ContentDelegate, _Destroyable, function(args) {
 						// mbtiles file cannot be found
 						console.log("mbtiles file not found: " + result.directory_working + mbtilesFileName);
 						// load OSM as fallback
-						baseLayer.setSource(new ol.source.MapQuest({layer: 'osm'}));
+						baseLayer.setSource(new ol.source.OSM());
 					});
 				});
 			});
